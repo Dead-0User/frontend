@@ -1,0 +1,305 @@
+{
+  "designSystem": {
+    "name": "Food Delivery App Design System",
+    "version": "1.0",
+    "overview": "A modern, clean mobile food ordering interface with card-based layouts and soft color palette",
+    
+    "colorPalette": {
+      "primary": {
+        "teal": "#2D7A7A",
+        "description": "Primary action color used for buttons, active states, and key UI elements"
+      },
+      "secondary": {
+        "lightTeal": "#B8D4D4",
+        "description": "Background color for main content areas and sections"
+      },
+      "neutral": {
+        "darkGray": "#333333",
+        "mediumGray": "#666666",
+        "lightGray": "#F5F5F5",
+        "white": "#FFFFFF"
+      },
+      "accent": {
+        "orange": "#FF6B35",
+        "description": "Used for ratings and star icons"
+      }
+    },
+    
+    "typography": {
+      "fontFamily": "Sans-serif, likely Roboto or similar modern system font",
+      "hierarchy": {
+        "h1": {
+          "size": "28-32px",
+          "weight": "700",
+          "usage": "Page titles like 'Menu'"
+        },
+        "h2": {
+          "size": "20-24px",
+          "weight": "600",
+          "usage": "Item names and section headers"
+        },
+        "body": {
+          "size": "14-16px",
+          "weight": "400",
+          "usage": "Descriptions and regular text"
+        },
+        "caption": {
+          "size": "12-14px",
+          "weight": "400",
+          "usage": "Time indicators, ratings, metadata"
+        },
+        "price": {
+          "size": "18-20px",
+          "weight": "700",
+          "usage": "Price displays"
+        }
+      }
+    },
+    
+    "spacing": {
+      "system": "8px base unit",
+      "scale": {
+        "xs": "4px",
+        "sm": "8px",
+        "md": "16px",
+        "lg": "24px",
+        "xl": "32px"
+      },
+      "cardPadding": "16px",
+      "screenMargins": "16px",
+      "cardGap": "12px"
+    },
+    
+    "borderRadius": {
+      "small": "8px",
+      "medium": "12px",
+      "large": "16px",
+      "card": "16px",
+      "button": "8px",
+      "image": "12px"
+    },
+    
+    "components": {
+      "card": {
+        "structure": "Container with image, title, metadata, and price",
+        "style": {
+          "background": "white",
+          "borderRadius": "16px",
+          "shadow": "0 2px 8px rgba(0,0,0,0.08)",
+          "padding": "12px"
+        },
+        "imageSection": {
+          "aspectRatio": "16:9 or 4:3",
+          "borderRadius": "12px",
+          "objectFit": "cover"
+        },
+        "contentSection": {
+          "spacing": "8px between elements",
+          "layout": "Vertical stack"
+        }
+      },
+      
+      "menuItemCard": {
+        "width": "~45% of screen width in grid",
+        "layout": "Grid with 2 columns",
+        "elements": [
+          {
+            "name": "image",
+            "position": "top",
+            "height": "120-140px"
+          },
+          {
+            "name": "title",
+            "fontSize": "16px",
+            "fontWeight": "600",
+            "marginTop": "8px"
+          },
+          {
+            "name": "metadata",
+            "layout": "horizontal flex",
+            "elements": ["time icon + text", "rating icon + score"],
+            "fontSize": "12px",
+            "color": "mediumGray",
+            "marginTop": "4px"
+          },
+          {
+            "name": "price",
+            "fontSize": "18px",
+            "fontWeight": "700",
+            "marginTop": "4px"
+          }
+        ]
+      },
+      
+      "detailCard": {
+        "layout": "Full width single column",
+        "elements": [
+          {
+            "name": "heroImage",
+            "height": "250-300px",
+            "width": "full",
+            "borderRadius": "12px"
+          },
+          {
+            "name": "header",
+            "layout": "horizontal space-between",
+            "elements": ["title", "metadata (time + rating)"]
+          },
+          {
+            "name": "price",
+            "fontSize": "20px",
+            "fontWeight": "700",
+            "marginTop": "8px"
+          },
+          {
+            "name": "description",
+            "fontSize": "14px",
+            "lineHeight": "1.6",
+            "color": "mediumGray",
+            "marginTop": "16px"
+          }
+        ]
+      },
+      
+      "button": {
+        "primary": {
+          "background": "teal (#2D7A7A)",
+          "color": "white",
+          "height": "48-52px",
+          "borderRadius": "8px",
+          "fontSize": "16px",
+          "fontWeight": "600",
+          "shadow": "0 2px 4px rgba(45,122,122,0.2)"
+        },
+        "icon": {
+          "size": "24x24px",
+          "padding": "8px",
+          "background": "teal or transparent",
+          "borderRadius": "8px"
+        }
+      },
+      
+      "searchBar": {
+        "height": "44px",
+        "background": "white or very light gray",
+        "borderRadius": "8px",
+        "padding": "12px 16px",
+        "fontSize": "14px",
+        "iconSize": "20px",
+        "iconColor": "lightGray"
+      },
+      
+      "categoryTabs": {
+        "layout": "horizontal scroll",
+        "style": {
+          "background": "transparent",
+          "activeBackground": "transparent",
+          "activeIndicator": "underline or highlight",
+          "padding": "8px 16px",
+          "fontSize": "14-16px"
+        }
+      },
+      
+      "bottomNavigation": {
+        "height": "60-70px",
+        "background": "white",
+        "shadow": "0 -2px 8px rgba(0,0,0,0.08)",
+        "items": {
+          "count": "4",
+          "iconSize": "24px",
+          "activeColor": "teal",
+          "inactiveColor": "gray",
+          "layout": "evenly distributed"
+        }
+      },
+      
+      "iconography": {
+        "style": "Outline/line icons",
+        "strokeWidth": "2px",
+        "sizes": {
+          "small": "16px",
+          "medium": "20px",
+          "large": "24px"
+        },
+        "usage": {
+          "time": "clock icon",
+          "rating": "star icon",
+          "cart": "shopping bag icon",
+          "favorite": "heart icon",
+          "back": "chevron left",
+          "menu": "grid or list icon"
+        }
+      },
+      
+      "recentlyViewed": {
+        "layout": "horizontal scroll carousel",
+        "itemWidth": "120-140px",
+        "itemHeight": "120-140px",
+        "borderRadius": "12px",
+        "gap": "12px"
+      }
+    },
+    
+    "layouts": {
+      "menuScreen": {
+        "structure": [
+          "Header with title and cart icon",
+          "Search bar",
+          "Category tabs (horizontal scroll)",
+          "Grid of menu item cards (2 columns)",
+          "Bottom navigation"
+        ],
+        "spacing": {
+          "headerPadding": "16px",
+          "contentMargin": "16px",
+          "gridGap": "12px"
+        }
+      },
+      
+      "detailScreen": {
+        "structure": [
+          "Hero image with back button and cart icon overlay",
+          "Content section: title, price, description",
+          "Recently viewed carousel",
+          "Action buttons (favorite, add to cart)",
+          "Bottom navigation"
+        ],
+        "spacing": {
+          "contentPadding": "16px",
+          "sectionGap": "24px"
+        }
+      }
+    },
+    
+    "interactions": {
+      "cardTap": "Navigate to detail view with transition animation",
+      "buttonPress": "Slight scale down (0.95) with opacity change",
+      "scroll": "Smooth momentum scrolling",
+      "carousel": "Horizontal scroll with snap points",
+      "tabSwitch": "Content fade/slide transition"
+    },
+    
+    "designPrinciples": {
+      "visualHierarchy": "Clear distinction between primary content (images, titles) and secondary info (metadata, descriptions)",
+      "whitespace": "Generous spacing to create breathing room and focus",
+      "consistency": "Repeating patterns for cards, spacing, and interactions",
+      "imagery": "High-quality food photography with natural lighting",
+      "accessibility": "Clear contrast ratios, readable font sizes, touch targets 44x44px minimum",
+      "responsiveness": "Flexible grid system that adapts to screen width"
+    },
+    
+    "animations": {
+      "duration": {
+        "fast": "150ms",
+        "normal": "250ms",
+        "slow": "350ms"
+      },
+      "easing": "ease-in-out or cubic-bezier",
+      "transitions": {
+        "cardPress": "Scale transform with opacity",
+        "pageTransition": "Slide from right",
+        "modalAppear": "Fade in with slight scale up"
+      }
+    }
+  }
+}

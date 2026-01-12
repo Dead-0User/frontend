@@ -147,7 +147,10 @@ export const DashboardHeader = ({
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 sm:w-96">
+            <DropdownMenuContent
+              align="end"
+              className="w-[90vw] sm:w-96 mr-2 sm:mr-0"
+            >
               <div className="p-3 border-b border-border flex items-center justify-between">
                 <div className="min-w-0 flex-1">
                   <h4 className="font-semibold text-foreground truncate">

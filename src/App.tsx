@@ -15,7 +15,8 @@ import { ThemeProvider } from "@/components/theme-provider";
 
 // Regular Pages
 import Index from "./pages/Index";
-import Landing from "./pages/Landing";
+// import Landing from "./pages/Landing";
+import PlatoLanding from "./pages/PlatoLanding";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
@@ -51,7 +52,8 @@ const App = () => (
             <NotificationProvider>
               <Routes>
                 {/* ===== PUBLIC ROUTES ===== */}
-                <Route path="/" element={<Landing />} />
+                {/* <Route path="/" element={<Landing />} /> */}
+                <Route path="/" element={<PlatoLanding />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/signup-otp" element={<SignupOTP />} /> {/* ✅ NEW */}

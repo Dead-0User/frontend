@@ -52,6 +52,7 @@ interface CartItem {
   quantity: number;
   addons: Addon[];
   isVeg: boolean;
+  committedQuantity?: number;
 }
 
 interface RestaurantData {
@@ -265,6 +266,7 @@ const CustomerPageContainer = () => {
                 typeof addon === "string" ? { name: addon, price: 0 } : addon
               ),
               isVeg: item.isVeg,
+              committedQuantity: item.quantity,
             }));
 
           if (cart.length === 0) {

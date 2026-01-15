@@ -14,6 +14,7 @@ import {
 interface Addon {
   name: string;
   price: number;
+  maxQuantity?: number;
 }
 
 interface AddonGroup {
@@ -305,28 +306,34 @@ const MenuTemplate = (props: TemplateProps) => {
       if (!group) return prev;
 
       if (group.multiSelect) {
-        // Toggle addon
-        const exists = current.some(
+        // Toggle addon logic with maxQuantity
+        const currentQty = current.filter(
           (a) => a.name === addon.name && a.price === addon.price
-        );
-        if (exists) {
+        ).length;
+        const maxQty = addon.maxQuantity || 1;
+
+        if (currentQty < maxQty) {
+          // Add another one
+          return {
+            ...prev,
+            [itemId]: [...current, addon],
+          };
+        } else {
+          // Reset to zero
           return {
             ...prev,
             [itemId]: current.filter(
               (a) => !(a.name === addon.name && a.price === addon.price)
             ),
           };
-        } else {
-          return {
-            ...prev,
-            [itemId]: [...current, addon],
-          };
         }
       } else {
         // Single select
-        const isAlreadySelected = current.some(
+        // Check quantity of this specific addon
+        const currentQty = current.filter(
           (a) => a.name === addon.name && a.price === addon.price
-        );
+        ).length;
+        const maxQty = addon.maxQuantity || 1;
 
         // Filter out any addons belonging to this group (to prepare for replacement or removal)
         // We do this by keeping only addons that belong to OTHER groups
@@ -340,19 +347,25 @@ const MenuTemplate = (props: TemplateProps) => {
           )
         );
 
-        if (isAlreadySelected) {
-          // If clicking the same item, just remove it (deselect)
+        if (currentQty > 0 && currentQty < maxQty) {
+          // Increment quantity of the SAME item (add another one)
+          return {
+            ...prev,
+            [itemId]: [...current, addon],
+          };
+        } else if (currentQty >= maxQty) {
+          // Deselect (remove all of this group's items)
           return {
             ...prev,
             [itemId]: otherAddons,
           };
+        } else {
+          // Replace with new selection (or select first time)
+          return {
+            ...prev,
+            [itemId]: [...otherAddons, addon],
+          };
         }
-
-        // Otherwise replace with new selection
-        return {
-          ...prev,
-          [itemId]: [...otherAddons, addon],
-        };
       }
     });
   };
@@ -429,7 +442,7 @@ const MenuTemplate = (props: TemplateProps) => {
   if (loading) {
     return (
       <div className="fixed inset-0 bg-white flex justify-center">
-        <div className="w-full max-w-[480px] h-full relative bg-[#B8D4D4] shadow-2xl flex flex-col items-center justify-center">
+        <div className="w-full max-w-[400px] h-full relative bg-[#B8D4D4] shadow-2xl flex flex-col items-center justify-center">
           <div className="text-center">
             <Loader2 className="h-16 w-16 animate-spin text-[#2D7A7A] mx-auto mb-4" />
             <h2 className="text-xl font-bold text-[#333333]">Loading Menu...</h2>
@@ -442,7 +455,7 @@ const MenuTemplate = (props: TemplateProps) => {
   // Common wrapper for all views
   const MobileWrapper = ({ children }: { children: React.ReactNode }) => (
     <div className="fixed inset-0 bg-white flex justify-center">
-      <div className="w-full max-w-[480px] h-full relative bg-[#B8D4D4] shadow-2xl flex flex-col overflow-hidden">
+      <div className="w-full max-w-[400px] h-full relative bg-[#B8D4D4] shadow-2xl flex flex-col overflow-hidden">
         {children}
       </div>
     </div>
@@ -614,7 +627,7 @@ const MenuTemplate = (props: TemplateProps) => {
 
   return (
     <div className="fixed inset-0 bg-white flex justify-center">
-      <div className="w-full max-w-[480px] h-full relative bg-[#B8D4D4] shadow-2xl flex flex-col overflow-hidden">
+      <div className="w-full max-w-[400px] h-full relative bg-[#B8D4D4] shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <header className="sticky top-0 z-40 bg-white shadow-sm shrink-0">
           <div className="px-4 py-4 flex items-center justify-center">
@@ -727,8 +740,8 @@ const MenuTemplate = (props: TemplateProps) => {
                             animation: `fadeIn 250ms ease-out ${index * 50}ms both`,
                           }}
                         >
-                          <div className="relative w-full aspect-[4/3] overflow-hidden">
-                            {item.image ? (
+                          {item.image && (
+                            <div className="relative w-full aspect-[4/3] overflow-hidden">
                               <img
                                 src={`${API_BASE_URL}${item.image}`}
                                 alt={item.name}
@@ -738,12 +751,8 @@ const MenuTemplate = (props: TemplateProps) => {
                                     "https://via.placeholder.com/400x300?text=No+Image";
                                 }}
                               />
-                            ) : (
-                              <div className="w-full h-full bg-[#F5F5F5] flex items-center justify-center">
-                                <span className="text-[#666666] text-sm">No Image</span>
-                              </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
 
                           <div className="p-3 space-y-1">
                             <h3 className="text-base font-semibold text-[#333333] line-clamp-1">
@@ -797,8 +806,9 @@ const MenuTemplate = (props: TemplateProps) => {
               style={{ animation: "slideUp 350ms ease-out" }}
             >
               {/* Hero Image */}
-              <div className="relative w-full h-64 sm:h-80 overflow-hidden">
-                {selectedItem.image ? (
+              {/* Hero Image or Header */}
+              {selectedItem.image ? (
+                <div className="relative w-full h-64 sm:h-80 overflow-hidden">
                   <img
                     src={`${API_BASE_URL}${selectedItem.image}`}
                     alt={selectedItem.name}
@@ -808,27 +818,41 @@ const MenuTemplate = (props: TemplateProps) => {
                         "https://via.placeholder.com/800x600?text=No+Image";
                     }}
                   />
-                ) : (
-                  <div className="w-full h-full bg-[#F5F5F5] flex items-center justify-center">
-                    <span className="text-[#666666]">No Image</span>
-                  </div>
-                )}
-                <button
-                  onClick={() => {
-                    if (selectedItem && itemQuantity[selectedItem.id] === 0) {
-                      setSelectedAddons((prev) => {
-                        const newAddons = { ...prev };
-                        delete newAddons[selectedItem.id];
-                        return newAddons;
-                      });
-                    }
-                    setSelectedItem(null);
-                  }}
-                  className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-md hover:bg-white transition-all"
-                >
-                  <ChevronLeft className="w-6 h-6 text-[#333333]" />
-                </button>
-              </div>
+                  <button
+                    onClick={() => {
+                      if (selectedItem && itemQuantity[selectedItem.id] === 0) {
+                        setSelectedAddons((prev) => {
+                          const newAddons = { ...prev };
+                          delete newAddons[selectedItem.id];
+                          return newAddons;
+                        });
+                      }
+                      setSelectedItem(null);
+                    }}
+                    className="absolute top-4 left-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-md hover:bg-white transition-all"
+                  >
+                    <ChevronLeft className="w-6 h-6 text-[#333333]" />
+                  </button>
+                </div>
+              ) : (
+                <div className="p-4 flex items-center">
+                  <button
+                    onClick={() => {
+                      if (selectedItem && itemQuantity[selectedItem.id] === 0) {
+                        setSelectedAddons((prev) => {
+                          const newAddons = { ...prev };
+                          delete newAddons[selectedItem.id];
+                          return newAddons;
+                        });
+                      }
+                      setSelectedItem(null);
+                    }}
+                    className="w-10 h-10 bg-[#F5F5F5] rounded-lg flex items-center justify-center hover:bg-[#E0E0E0] transition-all"
+                  >
+                    <ChevronLeft className="w-6 h-6 text-[#333333]" />
+                  </button>
+                </div>
+              )}
 
               {/* Content Section */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -901,6 +925,16 @@ const MenuTemplate = (props: TemplateProps) => {
                                     </div>
                                     <span className="text-sm font-medium text-[#333333]">
                                       {addon.name}
+                                      {/* Quantity Badge */}
+                                      {(selectedAddons[selectedItem.id] || []).filter(
+                                        (a) => a.name === addon.name && a.price === addon.price
+                                      ).length > 1 && (
+                                          <span className="ml-2 bg-[#2D7A7A] text-white text-xs px-1.5 py-0.5 rounded font-bold">
+                                            x{(selectedAddons[selectedItem.id] || []).filter(
+                                              (a) => a.name === addon.name && a.price === addon.price
+                                            ).length}
+                                          </span>
+                                        )}
                                     </span>
                                   </div>
                                   {addon.price > 0 && (
@@ -942,8 +976,8 @@ const MenuTemplate = (props: TemplateProps) => {
                               }}
                             />
                           ) : (
-                            <div className="w-full h-full bg-[#F5F5F5] flex items-center justify-center">
-                              <span className="text-[#666666] text-xs">No Image</span>
+                            <div className="w-full h-full bg-[#2D7A7A]/10 flex items-center justify-center p-2 text-center">
+                              <span className="text-xs font-semibold text-[#2D7A7A] line-clamp-3">{item.name}</span>
                             </div>
                           )}
                         </div>

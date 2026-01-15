@@ -16,6 +16,7 @@ const API_BASE_URL = `${BASE_URL}/api`;
 interface Addon {
   name: string;
   price: number;
+  maxQuantity?: number;
 }
 
 interface AddonGroup {
@@ -59,6 +60,16 @@ interface RestaurantData {
   name: string;
   id: string;
   templateStyle?: string;
+  phone?: string;
+  openingHours?: Record<string, string>;
+  operationalHours?: string | DayHours[];
+}
+
+interface DayHours {
+  day: string;
+  isOpen: boolean;
+  openTime: string;
+  closeTime: string;
 }
 
 interface TableData {
@@ -167,6 +178,7 @@ const CustomerPageContainer = () => {
 
         if (data.success) {
           console.log("📦 API Response - Restaurant Data:", data.data.restaurant);
+          console.log("🕒 Operational Hours Raw:", data.data.restaurant.operationalHours);
           console.log("🎨 Template Style from API:", data.data.restaurant?.templateStyle);
 
           const sectionsWithAddons: MenuSection[] = (data.data.menu || []).map(

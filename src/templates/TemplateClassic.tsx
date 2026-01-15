@@ -30,6 +30,7 @@ import { API_BASE_URL } from "@/config";
 interface Addon {
   name: string;
   price: number;
+  maxQuantity?: number;
 }
 
 interface AddonGroup {
@@ -66,6 +67,7 @@ interface CartItem {
   quantity: number;
   addons: Addon[];
   isVeg: boolean;
+  committedQuantity?: number;
 }
 
 interface RestaurantData {
@@ -233,10 +235,12 @@ const TemplateClassic = (props: TemplateProps) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-foreground">Loading Menu...</h2>
+      <div className="fixed inset-0 bg-secondary/30 flex justify-center">
+        <div className="w-full max-w-[400px] h-full relative bg-background flex flex-col items-center justify-center border-x shadow-2xl">
+          <div className="text-center">
+            <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-foreground">Loading Menu...</h2>
+          </div>
         </div>
       </div>
     );
@@ -245,95 +249,99 @@ const TemplateClassic = (props: TemplateProps) => {
   if (orderPlaced) {
     if (['paid', 'cancelled'].includes(orderStatus)) {
       return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="max-w-md w-full text-center">
-            <CardContent className="p-8">
-              <CheckCircle className="h-16 w-16 text-success mx-auto mb-4" />
-              <h2 className="text-2xl font-bold mb-2">
-                {orderStatus === 'paid' ? 'Order Completed!' : 'Order Cancelled'}
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                {orderStatus === 'paid'
-                  ? 'Thank you for dining with us!'
-                  : 'This order has been cancelled.'}
-              </p>
+        <div className="fixed inset-0 bg-secondary/30 flex justify-center">
+          <div className="w-full max-w-[400px] h-full relative bg-background flex flex-col items-center justify-center p-4 border-x shadow-2xl">
+            <Card className="max-w-md w-full text-center">
+              <CardContent className="p-8">
+                <CheckCircle className="h-16 w-16 text-success mx-auto mb-4" />
+                <h2 className="text-2xl font-bold mb-2">
+                  {orderStatus === 'paid' ? 'Order Completed!' : 'Order Cancelled'}
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  {orderStatus === 'paid'
+                    ? 'Thank you for dining with us!'
+                    : 'This order has been cancelled.'}
+                </p>
 
-              <Button
-                onClick={() => {
-                  setOrderPlaced(false);
-                  setOrderId(null);
-                  setOrderStatus("pending");
-                }}
-                className="w-full"
-              >
-                Place New Order
-              </Button>
-            </CardContent>
-          </Card>
+                <Button
+                  onClick={() => {
+                    setOrderPlaced(false);
+                    setOrderId(null);
+                    setOrderStatus("pending");
+                  }}
+                  className="w-full"
+                >
+                  Place New Order
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       );
     }
 
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="max-w-md w-full text-center">
-          <CardContent className="p-8">
-            <CheckCircle className="h-16 w-16 text-success mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Order Confirmed!</h2>
-            <p className="text-muted-foreground mb-6">Your order has been sent to the kitchen.</p>
+      <div className="fixed inset-0 bg-secondary/30 flex justify-center">
+        <div className="w-full max-w-[400px] h-full relative bg-background flex flex-col items-center justify-center p-4 border-x shadow-2xl">
+          <Card className="max-w-md w-full text-center">
+            <CardContent className="p-8">
+              <CheckCircle className="h-16 w-16 text-success mx-auto mb-4" />
+              <h2 className="text-2xl font-bold mb-2">Order Confirmed!</h2>
+              <p className="text-muted-foreground mb-6">Your order has been sent to the kitchen.</p>
 
-            <div className="bg-secondary rounded-lg p-4 mb-6">
-              <p className="font-bold text-lg mb-1">{restaurantData?.name}</p>
-              <p className="text-sm text-muted-foreground mb-3">{tableData?.tableName}</p>
+              <div className="bg-secondary rounded-lg p-4 mb-6">
+                <p className="font-bold text-lg mb-1">{restaurantData?.name}</p>
+                <p className="text-sm text-muted-foreground mb-3">{tableData?.tableName}</p>
 
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <span className="text-sm">Order ID:</span>
-                <span className="text-sm font-mono font-bold">
-                  {orderId?.slice(-8).toUpperCase()}
-                </span>
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <span className="text-sm">Order ID:</span>
+                  <span className="text-sm font-mono font-bold">
+                    {orderId?.slice(-8).toUpperCase()}
+                  </span>
+                </div>
+
+                <Badge className={`${getStatusColor(orderStatus)} mb-3`}>
+                  {getStatusText(orderStatus)}
+                </Badge>
+
+                <p className="text-xs text-muted-foreground">Status updates automatically</p>
               </div>
 
-              <Badge className={`${getStatusColor(orderStatus)} mb-3`}>
-                {getStatusText(orderStatus)}
-              </Badge>
+              <div className="space-y-2">
+                <Button
+                  onClick={onCallWaiter}
+                  disabled={isCallingWaiter || waiterCalled}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {isCallingWaiter ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Calling...
+                    </>
+                  ) : waiterCalled ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Waiter Notified!
+                    </>
+                  ) : (
+                    <>
+                      <Bell className="h-4 w-4 mr-2" />
+                      Call Waiter
+                    </>
+                  )}
+                </Button>
 
-              <p className="text-xs text-muted-foreground">Status updates automatically</p>
-            </div>
-
-            <div className="space-y-2">
-              <Button
-                onClick={onCallWaiter}
-                disabled={isCallingWaiter || waiterCalled}
-                variant="outline"
-                className="w-full"
-              >
-                {isCallingWaiter ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Calling...
-                  </>
-                ) : waiterCalled ? (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Waiter Notified!
-                  </>
-                ) : (
-                  <>
-                    <Bell className="h-4 w-4 mr-2" />
-                    Call Waiter
-                  </>
-                )}
-              </Button>
-
-              <Button
-                onClick={() => setOrderPlaced(false)}
-                className="w-full"
-              >
-                Place Another Order
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                <Button
+                  onClick={() => setOrderPlaced(false)}
+                  className="w-full"
+                >
+                  Place Another Order
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
@@ -341,301 +349,213 @@ const TemplateClassic = (props: TemplateProps) => {
   const filteredMenu = getFilteredMenu();
 
   return (
-    <div className="min-h-screen pb-32 bg-background">
-      {/* Header */}
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-primary p-2 rounded-lg">
-                <Utensils className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold">{restaurantData?.name}</h1>
-                <p className="text-sm text-muted-foreground">{tableData?.tableName}</p>
-              </div>
-            </div>
-            <Button
-              onClick={onCallWaiter}
-              disabled={isCallingWaiter || waiterCalled}
-              variant={waiterCalled ? "success" : "outline"}
-              size="sm"
-            >
-              {isCallingWaiter ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : waiterCalled ? (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                  Called
-                </>
-              ) : (
-                <>
-                  <Bell className="h-4 w-4 mr-1" />
-                  Call Waiter
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="px-4 py-4">
-        {/* Existing Order Banner */}
-        {existingOrderId && !orderPlaced && !['paid', 'cancelled'].includes(orderStatus) && (
-          <Card className="mb-4 border-primary">
-            <CardContent className="p-4">
+    <div className="fixed inset-0 bg-secondary/30 flex justify-center">
+      <div className="w-full max-w-[400px] h-full relative bg-background flex flex-col overflow-hidden border-x shadow-2xl">
+        <div className="flex-1 overflow-y-auto pb-32">
+          {/* Header */}
+          <div className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b">
+            <div className="px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-primary" />
+                  <div className="bg-primary p-2 rounded-lg">
+                    <Utensils className="h-5 w-5 text-primary-foreground" />
+                  </div>
                   <div>
-                    <p className="font-semibold">Active Order</p>
-                    <p className="text-sm text-muted-foreground">
-                      #{existingOrderId?.slice(-8).toUpperCase()}
-                    </p>
-                    <Badge className={`${getStatusColor(orderStatus)} text-xs mt-1`}>
-                      {getStatusText(orderStatus)}
-                    </Badge>
+                    <h1 className="text-lg font-bold">{restaurantData?.name}</h1>
+                    <p className="text-sm text-muted-foreground">{tableData?.tableName}</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button onClick={() => setShowCart(true)} size="sm">
-                    <ShoppingCart className="h-4 w-4 mr-1" />
-                    Edit
-                  </Button>
-                  <Button onClick={() => setOrderPlaced(true)} variant="outline" size="sm">
-                    View
-                  </Button>
-                </div>
+                <Button
+                  onClick={onCallWaiter}
+                  disabled={isCallingWaiter || waiterCalled}
+                  variant={waiterCalled ? "success" : "outline"}
+                  size="sm"
+                >
+                  {isCallingWaiter ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : waiterCalled ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Called
+                    </>
+                  ) : (
+                    <>
+                      <Bell className="h-4 w-4 mr-1" />
+                      Call Waiter
+                    </>
+                  )}
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Search */}
-        <div className="mb-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search menu..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+            </div>
           </div>
-        </div>
 
-        {/* Quick Filters */}
-        <div className="flex gap-2 mb-3 overflow-x-auto">
-          <Button
-            onClick={() => setShowVegOnly(!showVegOnly)}
-            variant={showVegOnly ? "success" : "outline"}
-            size="sm"
-          >
-            <Leaf className="h-4 w-4 mr-1" />
-            Veg Only
-          </Button>
-
-          <Button
-            onClick={() => setShowFilters(!showFilters)}
-            variant={showFilters ? "default" : "outline"}
-            size="sm"
-          >
-            <SlidersHorizontal className="h-4 w-4 mr-1" />
-            Filters
-            {activeFiltersCount() > 0 && (
-              <Badge className="ml-1 h-4 w-4 p-0 text-xs">
-                {activeFiltersCount()}
-              </Badge>
-            )}
-          </Button>
-
-          {activeFiltersCount() > 0 && (
-            <Button onClick={clearFilters} variant="ghost" size="sm">
-              <X className="h-4 w-4 mr-1" />
-              Clear
-            </Button>
-          )}
-        </div>
-
-        {/* Filters Panel */}
-        {showFilters && (
-          <Card className="mb-4">
-            <CardContent className="p-4">
-              <label className="text-sm font-semibold mb-2 block">Price Range</label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={priceFilter === "all" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setPriceFilter("all")}
-                >
-                  All Prices
-                </Button>
-                <Button
-                  variant={priceFilter === "under10" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setPriceFilter("under10")}
-                >
-                  Under {currency.symbol}10
-                </Button>
-                <Button
-                  variant={priceFilter === "10to20" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setPriceFilter("10to20")}
-                >
-                  {currency.symbol}10 - {currency.symbol}20
-                </Button>
-                <Button
-                  variant={priceFilter === "over20" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setPriceFilter("over20")}
-                >
-                  Over {currency.symbol}20
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Category Tabs */}
-        <div className="flex overflow-x-auto gap-2 pb-3 mb-6">
-          <Button
-            variant={selectedCategory === "all" ? "default" : "outline"}
-            onClick={() => setSelectedCategory("all")}
-            className="whitespace-nowrap"
-          >
-            All Items
-          </Button>
-          {menuSections.map((section) => (
-            <Button
-              key={section.id}
-              variant={selectedCategory === section.name.toLowerCase() ? "default" : "outline"}
-              onClick={() => setSelectedCategory(section.name.toLowerCase())}
-              className="whitespace-nowrap"
-            >
-              {section.name}
-            </Button>
-          ))}
-        </div>
-
-        {/* Menu Items */}
-        {filteredMenu.length === 0 ? (
-          <Card className="text-center py-12">
-            <CardContent>
-              <Utensils className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-              <h3 className="text-lg font-bold mb-2">No items found</h3>
-              <p className="text-sm text-muted-foreground mb-4">Try adjusting your filters</p>
-              {activeFiltersCount() > 0 && (
-                <Button onClick={clearFilters} variant="outline" size="sm">
-                  Clear All Filters
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-8">
-            {filteredMenu.map((section) => (
-              <div key={section.id}>
-                <h2 className="text-xl font-bold mb-4">{section.name}</h2>
-
-                <div className="space-y-4">
-                  {section.items.map((item) => (
-                    <MenuItemCard
-                      key={item.id}
-                      item={item}
-                      onAddToCart={onAddToCart}
-                      formatPrice={formatPrice}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Floating Cart Button */}
-      {cart.length > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 z-50">
-          <Button
-            onClick={() => setShowCart(true)}
-            size="lg"
-            className="w-full h-14"
-          >
-            <ShoppingCart className="h-5 w-5 mr-2" />
-            View Cart ({getCartItemCount()})
-            <span className="ml-auto">{formatPrice(getCartTotal())}</span>
-          </Button>
-        </div>
-      )}
-
-      {/* Cart Dialog */}
-      <Dialog open={showCart} onOpenChange={setShowCart}>
-        <DialogContent className="w-full h-full max-w-full max-h-full m-0 rounded-none p-0 flex flex-col">
-          <DialogHeader className="px-4 pt-4 pb-3 border-b">
-            <DialogTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                <span>Your Order</span>
-              </div>
-              <Badge>{getCartItemCount()}</Badge>
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto px-4 py-3">
-            {cart.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                Your cart is empty
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {cart.map((item) => (
-                  <div key={item.id} className="bg-secondary/50 rounded-lg p-3">
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex-1">
-                        <h4 className="font-bold text-sm">{item.name}</h4>
-                        <p className="text-xs text-primary font-semibold">{formatPrice(item.price)} each</p>
-                        {item.addons.length > 0 && (
-                          <div className="space-y-0.5 mt-1">
-                            {item.addons.map((addon, idx) => (
-                              <div key={idx} className="text-xs text-muted-foreground">
-                                + {addon.name} {addon.price > 0 && `(+${formatPrice(addon.price)})`}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+          <div className="px-4 py-4">
+            {/* Existing Order Banner */}
+            {existingOrderId && !orderPlaced && !['paid', 'cancelled'].includes(orderStatus) && (
+              <Card className="mb-4 border-primary">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="h-5 w-5 text-primary" />
+                      <div>
+                        <p className="font-semibold">Active Order</p>
+                        <p className="text-sm text-muted-foreground">
+                          #{existingOrderId?.slice(-8).toUpperCase()}
+                        </p>
+                        <Badge className={`${getStatusColor(orderStatus)} text-xs mt-1`}>
+                          {getStatusText(orderStatus)}
+                        </Badge>
                       </div>
-
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => onRemoveFromCart(item.id)}
-                        className="h-8 w-8"
-                      >
-                        <X className="h-4 w-4" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={() => setShowCart(true)} size="sm">
+                        <ShoppingCart className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button onClick={() => setOrderPlaced(true)} variant="outline" size="sm">
+                        View
                       </Button>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          onClick={() => onUpdateQuantity(item.id, -1)}
-                          className="h-8 w-8"
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <span className="w-8 text-center font-bold">{item.quantity}</span>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          onClick={() => onUpdateQuantity(item.id, 1)}
-                          className="h-8 w-8"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
-                      </div>
-                      <p className="font-bold">{formatPrice(getItemTotal(item))}</p>
+            {/* Search */}
+            <div className="mb-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search menu..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Quick Filters */}
+            <div className="flex gap-2 mb-3 overflow-x-auto">
+              <Button
+                onClick={() => setShowVegOnly(!showVegOnly)}
+                variant={showVegOnly ? "success" : "outline"}
+                size="sm"
+              >
+                <Leaf className="h-4 w-4 mr-1" />
+                Veg Only
+              </Button>
+
+              <Button
+                onClick={() => setShowFilters(!showFilters)}
+                variant={showFilters ? "default" : "outline"}
+                size="sm"
+              >
+                <SlidersHorizontal className="h-4 w-4 mr-1" />
+                Filters
+                {activeFiltersCount() > 0 && (
+                  <Badge className="ml-1 h-4 w-4 p-0 text-xs">
+                    {activeFiltersCount()}
+                  </Badge>
+                )}
+              </Button>
+
+              {activeFiltersCount() > 0 && (
+                <Button onClick={clearFilters} variant="ghost" size="sm">
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
+
+            {/* Filters Panel */}
+            {showFilters && (
+              <Card className="mb-4">
+                <CardContent className="p-4">
+                  <label className="text-sm font-semibold mb-2 block">Price Range</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant={priceFilter === "all" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPriceFilter("all")}
+                    >
+                      All Prices
+                    </Button>
+                    <Button
+                      variant={priceFilter === "under10" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPriceFilter("under10")}
+                    >
+                      Under {currency.symbol}10
+                    </Button>
+                    <Button
+                      variant={priceFilter === "10to20" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPriceFilter("10to20")}
+                    >
+                      {currency.symbol}10 - {currency.symbol}20
+                    </Button>
+                    <Button
+                      variant={priceFilter === "over20" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPriceFilter("over20")}
+                    >
+                      Over {currency.symbol}20
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Category Tabs */}
+            <div className="flex overflow-x-auto gap-2 pb-3 mb-6">
+              <Button
+                variant={selectedCategory === "all" ? "default" : "outline"}
+                onClick={() => setSelectedCategory("all")}
+                className="whitespace-nowrap"
+              >
+                All Items
+              </Button>
+              {menuSections.map((section) => (
+                <Button
+                  key={section.id}
+                  variant={selectedCategory === section.name.toLowerCase() ? "default" : "outline"}
+                  onClick={() => setSelectedCategory(section.name.toLowerCase())}
+                  className="whitespace-nowrap"
+                >
+                  {section.name}
+                </Button>
+              ))}
+            </div>
+
+            {/* Menu Items */}
+            {filteredMenu.length === 0 ? (
+              <Card className="text-center py-12">
+                <CardContent>
+                  <Utensils className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                  <h3 className="text-lg font-bold mb-2">No items found</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Try adjusting your filters</p>
+                  {activeFiltersCount() > 0 && (
+                    <Button onClick={clearFilters} variant="outline" size="sm">
+                      Clear All Filters
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-8">
+                {filteredMenu.map((section) => (
+                  <div key={section.id}>
+                    <h2 className="text-xl font-bold mb-4">{section.name}</h2>
+
+                    <div className="space-y-4">
+                      {section.items.map((item) => (
+                        <MenuItemCard
+                          key={item.id}
+                          item={item}
+                          onAddToCart={onAddToCart}
+                          formatPrice={formatPrice}
+                        />
+                      ))}
                     </div>
                   </div>
                 ))}
@@ -643,57 +563,162 @@ const TemplateClassic = (props: TemplateProps) => {
             )}
           </div>
 
+          {/* Floating Cart Button */}
           {cart.length > 0 && (
-            <div className="border-t px-4 py-4 space-y-3">
-              <div>
-                <label className="block text-sm font-semibold mb-1">Your Name (Optional)</label>
-                <Input
-                  placeholder="Enter your name"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold mb-1">Special Instructions</label>
-                <Textarea
-                  placeholder="Any special requests..."
-                  value={specialInstructions}
-                  onChange={(e) => setSpecialInstructions(e.target.value)}
-                  rows={2}
-                />
-              </div>
-
-              <div className="bg-secondary rounded-lg p-3">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="font-semibold">Total:</span>
-                  <span className="text-2xl font-bold text-primary">
-                    {formatPrice(getCartTotal())}
-                  </span>
-                </div>
-
-                <Button
-                  onClick={onPlaceOrder}
-                  disabled={isPlacingOrder || isUpdatingOrder}
-                  className="w-full"
-                >
-                  {isPlacingOrder || isUpdatingOrder ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      {existingOrderId && !['paid', 'cancelled'].includes(orderStatus) ? 'Update Order' : 'Place Order'}
-                    </>
-                  )}
-                </Button>
-              </div>
+            <div className="absolute bottom-4 left-4 right-4 z-50">
+              <Button
+                onClick={() => setShowCart(true)}
+                size="lg"
+                className="w-full h-14"
+              >
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                View Cart ({getCartItemCount()})
+                <span className="ml-auto">{formatPrice(getCartTotal())}</span>
+              </Button>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+
+          {/* Cart Dialog - Custom Overlay */}
+          {showCart && (
+            <div className="absolute inset-0 z-50 bg-background flex flex-col animate-in slide-in-from-bottom duration-300">
+              <div className="px-4 pt-4 pb-3 border-b flex items-center justify-between">
+                <div className="flex items-center gap-2 font-bold text-lg">
+                  <ShoppingCart className="h-5 w-5" />
+                  <span>Your Order</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge>{getCartItemCount()}</Badge>
+                  <Button variant="ghost" size="icon" onClick={() => setShowCart(false)}>
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-4 py-3">
+                {cart.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    Your cart is empty
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {cart.map((item) => (
+                      <div key={item.id} className="bg-secondary/50 rounded-lg p-3">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex-1">
+                            <h4 className="font-bold text-sm">{item.name}</h4>
+                            <p className="text-xs text-primary font-semibold">{formatPrice(item.price)} each</p>
+                            {item.addons.length > 0 && (
+                              <div className="space-y-0.5 mt-1">
+                                {item.addons.map((addon, idx) => (
+                                  <div key={idx} className="text-xs text-muted-foreground">
+                                    + {addon.name} {addon.price > 0 && `(+${formatPrice(addon.price)})`}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              if (!item.committedQuantity || item.committedQuantity === 0) {
+                                onRemoveFromCart(item.id);
+                              }
+                            }}
+                            disabled={!!item.committedQuantity && item.committedQuantity > 0}
+                            className="h-8 w-8 disabled:opacity-30"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => {
+                                if (item.quantity > (item.committedQuantity || 0)) {
+                                  onUpdateQuantity(item.id, -1);
+                                }
+                              }}
+                              disabled={item.quantity <= (item.committedQuantity || 0)}
+                              className="h-8 w-8 disabled:opacity-30"
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center font-bold">{item.quantity}</span>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => onUpdateQuantity(item.id, 1)}
+                              className="h-8 w-8"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <p className="font-bold">{formatPrice(getItemTotal(item))}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {cart.length > 0 && (
+                <div className="border-t px-4 py-4 space-y-3 mt-auto bg-background">
+                  <div>
+                    <label className="block text-sm font-semibold mb-1">Your Name (Optional)</label>
+                    <Input
+                      placeholder="Enter your name"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold mb-1">Special Instructions</label>
+                    <Textarea
+                      placeholder="Any special requests..."
+                      value={specialInstructions}
+                      onChange={(e) => setSpecialInstructions(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="bg-secondary rounded-lg p-3">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="font-semibold">Total:</span>
+                      <span className="text-2xl font-bold text-primary">
+                        {formatPrice(getCartTotal())}
+                      </span>
+                    </div>
+
+                    <Button
+                      onClick={onPlaceOrder}
+                      disabled={isPlacingOrder || isUpdatingOrder}
+                      className="w-full"
+                    >
+                      {isPlacingOrder || isUpdatingOrder ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          {existingOrderId && !['paid', 'cancelled'].includes(orderStatus) ? 'Update Order' : 'Place Order'}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -717,24 +742,44 @@ const MenuItemCard = ({ item, onAddToCart, formatPrice }: MenuItemCardProps) => 
       const currentGroupAddons = prev[groupIndex] || [];
 
       if (group.multiSelect) {
-        const exists = currentGroupAddons.find(a => a.name === addon.name);
-        if (exists) {
-          return {
-            ...prev,
-            [groupIndex]: currentGroupAddons.filter(a => a.name !== addon.name)
-          };
-        } else {
+        const currentQty = currentGroupAddons.filter(a => a.name === addon.name).length;
+        const maxQty = addon.maxQuantity || 1;
+
+        if (currentQty < maxQty) {
           return {
             ...prev,
             [groupIndex]: [...currentGroupAddons, addon]
           };
+        } else {
+          return {
+            ...prev,
+            [groupIndex]: currentGroupAddons.filter(a => a.name !== addon.name)
+          };
         }
       } else {
-        const isSame = currentGroupAddons[0]?.name === addon.name;
-        return {
-          ...prev,
-          [groupIndex]: isSame ? [] : [addon]
-        };
+        // Single select logic
+        const currentQty = currentGroupAddons.filter(a => a.name === addon.name).length;
+        const maxQty = addon.maxQuantity || 1;
+
+        if (currentQty > 0 && currentQty < maxQty) {
+          // Increment
+          return {
+            ...prev,
+            [groupIndex]: [...currentGroupAddons, addon]
+          };
+        } else if (currentQty >= maxQty) {
+          // Toggle off if at max
+          return {
+            ...prev,
+            [groupIndex]: []
+          };
+        } else {
+          // Replace with new selection
+          return {
+            ...prev,
+            [groupIndex]: [addon]
+          };
+        }
       }
     });
   };
@@ -765,27 +810,23 @@ const MenuItemCard = ({ item, onAddToCart, formatPrice }: MenuItemCardProps) => 
     <Card className="overflow-hidden">
       <CardContent className="p-0">
         <div className="flex flex-col">
-          <div className="w-full h-40 relative">
-            {item.image ? (
+          {item.image && (
+            <div className="w-full h-40 relative">
               <img
                 src={`${API_BASE_URL}${item.image}`}
                 alt={item.name}
                 className="w-full h-full object-cover"
               />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-secondary">
-                <Utensils className="h-10 w-10 text-muted-foreground/50" />
+              <div className={`absolute top-2 left-2 w-6 h-6 rounded-lg border-3 flex items-center justify-center ${item.isVeg ? 'bg-white border-green-600' : 'bg-white border-red-600'
+                }`}>
+                <div className={`w-2.5 h-2.5 rounded-full ${item.isVeg ? 'bg-green-600' : 'bg-red-600'
+                  }`} />
               </div>
-            )}
-            <div className={`absolute top-2 left-2 w-6 h-6 rounded-lg border-3 flex items-center justify-center ${item.isVeg ? 'bg-white border-green-600' : 'bg-white border-red-600'
-              }`}>
-              <div className={`w-2.5 h-2.5 rounded-full ${item.isVeg ? 'bg-green-600' : 'bg-red-600'
-                }`} />
+              <div className="absolute top-2 right-2 bg-primary/90 px-2 py-1 rounded-lg">
+                <p className="text-sm font-bold text-primary-foreground">{formatPrice(item.price)}</p>
+              </div>
             </div>
-            <div className="absolute top-2 right-2 bg-primary/90 px-2 py-1 rounded-lg">
-              <p className="text-sm font-bold text-primary-foreground">{formatPrice(item.price)}</p>
-            </div>
-          </div>
+          )}
 
           <div className="p-3">
             <h3 className="font-bold mb-1">{item.name}</h3>
@@ -842,7 +883,14 @@ const MenuItemCard = ({ item, onAddToCart, formatPrice }: MenuItemCardProps) => 
                               onChange={() => toggleAddon(groupIndex, addon)}
                               className="w-4 h-4"
                             />
-                            <span className="text-sm">{addon.name}</span>
+                            <span className="text-sm">
+                              {addon.name}
+                              {(selectedAddons[groupIndex]?.filter(a => a.name === addon.name).length || 0) > 1 && (
+                                <span className="ml-2 bg-primary/10 text-primary text-xs font-bold px-1.5 py-0.5 rounded">
+                                  x{selectedAddons[groupIndex].filter(a => a.name === addon.name).length}
+                                </span>
+                              )}
+                            </span>
                           </div>
                           <span className="text-sm font-bold text-primary">
                             {addon.price > 0 ? `+${formatPrice(addon.price)}` : 'Free'}

@@ -383,12 +383,17 @@ export default function AnalyticsPage() {
     }
   };
 
-  const filteredOrders = recentOrders.filter(
-    (order) =>
+  const filteredOrders = recentOrders.filter((order) => {
+    // Only show paid/completed orders
+    const isPaid = order.status.toLowerCase() === 'paid' || order.status.toLowerCase() === 'completed';
+    if (!isPaid) return false;
+
+    return (
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.table.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.items.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    );
+  });
 
   const exportToCSV = () => {
     const csvContent = [

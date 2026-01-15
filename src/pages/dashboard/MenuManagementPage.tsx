@@ -9,12 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Edit, Trash2, Eye, EyeOff, Upload, Image as ImageIcon, Loader2, X, GripVertical, Check } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Upload, Image as ImageIcon, Loader2, X, GripVertical, Check, HelpCircle } from "lucide-react";
 
 import { API_BASE_URL } from "@/config";
 const API_URL = API_BASE_URL;
@@ -83,6 +84,7 @@ const MenuManagementPage = () => {
   const [newGroupAddons, setNewGroupAddons] = useState([]);
   const [tempAddonName, setTempAddonName] = useState("");
   const [tempAddonPrice, setTempAddonPrice] = useState("");
+  const [tempAddonMaxQty, setTempAddonMaxQty] = useState("1");
 
   // Edit group states
   const [editingGroupIndex, setEditingGroupIndex] = useState(null);
@@ -92,6 +94,7 @@ const MenuManagementPage = () => {
   const [editingAddonIndex, setEditingAddonIndex] = useState(null);
   const [editingAddonName, setEditingAddonName] = useState("");
   const [editingAddonPrice, setEditingAddonPrice] = useState("");
+  const [editingAddonMaxQty, setEditingAddonMaxQty] = useState("1");
 
   const [sectionToDelete, setSectionToDelete] = useState(null);
   const [isDeleteSectionDialogOpen, setIsDeleteSectionDialogOpen] = useState(false);
@@ -122,6 +125,7 @@ const MenuManagementPage = () => {
     setNewGroupAddons([]);
     setTempAddonName("");
     setTempAddonPrice("");
+    setTempAddonMaxQty("1");
   };
 
   // Add addon to the group being created
@@ -145,9 +149,21 @@ const MenuManagementPage = () => {
       return;
     }
 
+
+    const maxQty = parseInt(tempAddonMaxQty) || 1;
+    if (maxQty < 1) {
+      toast({
+        title: "Error",
+        description: "Max quantity must be at least 1",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setNewGroupAddons([...newGroupAddons, {
       name: tempAddonName.trim(),
-      price
+      price,
+      maxQuantity: maxQty
     }]);
 
     setTempAddonName("");
@@ -179,6 +195,7 @@ const MenuManagementPage = () => {
     setNewGroupAddons([]);
     setTempAddonName("");
     setTempAddonPrice("");
+    setTempAddonMaxQty("1");
 
     toast({
       title: "Success",
@@ -194,6 +211,7 @@ const MenuManagementPage = () => {
     setNewGroupAddons([]);
     setTempAddonName("");
     setTempAddonPrice("");
+    setTempAddonMaxQty("1");
   };
 
   // Remove addon from new group being created
@@ -255,6 +273,7 @@ const MenuManagementPage = () => {
     setEditingAddonIndex(null);
     setEditingAddonName("");
     setEditingAddonPrice("");
+    setEditingAddonMaxQty("1");
   };
 
   // Start editing a specific addon within the editing group
@@ -263,6 +282,7 @@ const MenuManagementPage = () => {
     setEditingAddonIndex(addonIndex);
     setEditingAddonName(addon.name);
     setEditingAddonPrice(addon.price.toString());
+    setEditingAddonMaxQty((addon.maxQuantity || 1).toString());
   };
 
   // Save edited addon
@@ -286,9 +306,19 @@ const MenuManagementPage = () => {
       return;
     }
 
+    const maxQty = parseInt(editingAddonMaxQty) || 1;
+    if (maxQty < 1) {
+      toast({
+        title: "Error",
+        description: "Max quantity must be at least 1",
+        variant: "destructive"
+      });
+      return;
+    }
+
     const updatedAddons = editingGroupAddons.map((addon, index) =>
       index === editingAddonIndex
-        ? { name: editingAddonName.trim(), price }
+        ? { name: editingAddonName.trim(), price, maxQuantity: maxQty }
         : addon
     );
 
@@ -296,6 +326,7 @@ const MenuManagementPage = () => {
     setEditingAddonIndex(null);
     setEditingAddonName("");
     setEditingAddonPrice("");
+    setEditingAddonMaxQty("1");
   };
 
   // Cancel editing addon
@@ -303,6 +334,7 @@ const MenuManagementPage = () => {
     setEditingAddonIndex(null);
     setEditingAddonName("");
     setEditingAddonPrice("");
+    setEditingAddonMaxQty("1");
   };
 
   // Remove addon from editing group
@@ -331,9 +363,21 @@ const MenuManagementPage = () => {
       return;
     }
 
+
+    const maxQty = parseInt(tempAddonMaxQty) || 1;
+    if (maxQty < 1) {
+      toast({
+        title: "Error",
+        description: "Max quantity must be at least 1",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setEditingGroupAddons([...editingGroupAddons, {
       name: tempAddonName.trim(),
-      price
+      price,
+      maxQuantity: maxQty
     }]);
 
     setTempAddonName("");
@@ -1159,6 +1203,7 @@ const MenuManagementPage = () => {
                         setNewGroupAddons([]);
                         setTempAddonName("");
                         setTempAddonPrice("");
+                        setTempAddonMaxQty("1");
                         itemForm.setValue("sectionId", section.id);
                       }}
                     >
@@ -1394,6 +1439,32 @@ const MenuManagementPage = () => {
                                                         }}
                                                         className="w-28"
                                                       />
+                                                      <div className="flex items-center">
+                                                        <TooltipProvider>
+                                                          <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                              <div className="relative">
+                                                                <Input
+                                                                  type="number"
+                                                                  min="1"
+                                                                  placeholder="Max Qty"
+                                                                  value={editingAddonMaxQty}
+                                                                  onChange={(e) => setEditingAddonMaxQty(e.target.value)}
+                                                                  className="w-20 pr-7"
+                                                                />
+                                                                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground cursor-help">
+                                                                  <HelpCircle className="h-3 w-3" />
+                                                                </div>
+                                                              </div>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent>
+                                                              <p className="w-[200px] text-xs">
+                                                                Max quantity a customer can select for this option.
+                                                              </p>
+                                                            </TooltipContent>
+                                                          </Tooltip>
+                                                        </TooltipProvider>
+                                                      </div>
                                                       <Button
                                                         type="button"
                                                         onClick={handleSaveEditedAddon}
@@ -1418,6 +1489,9 @@ const MenuManagementPage = () => {
                                                         <span className="font-medium">{addon.name}</span>
                                                         <span className="text-sm text-muted-foreground">
                                                           {addon.price > 0 ? `+${addon.price.toFixed(2)}` : 'Free'}
+                                                          {addon.maxQuantity > 1 && (
+                                                            <span className="ml-2 bg-muted px-1.5 py-0.5 rounded textxs">Max: {addon.maxQuantity}</span>
+                                                          )}
                                                         </span>
                                                       </div>
                                                       <div className="flex gap-1">
@@ -1477,6 +1551,38 @@ const MenuManagementPage = () => {
                                               }}
                                               className="w-28"
                                             />
+                                            <div className="flex items-center">
+                                              <TooltipProvider>
+                                                <Tooltip>
+                                                  <TooltipTrigger asChild>
+                                                    <div className="relative">
+                                                      <Input
+                                                        type="number"
+                                                        min="1"
+                                                        placeholder="Max Qty"
+                                                        value={tempAddonMaxQty}
+                                                        onChange={(e) => setTempAddonMaxQty(e.target.value)}
+                                                        onKeyPress={(e) => {
+                                                          if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleAddAddonToEditGroup();
+                                                          }
+                                                        }}
+                                                        className="w-20 pr-7"
+                                                      />
+                                                      <div className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground cursor-help">
+                                                        <HelpCircle className="h-3 w-3" />
+                                                      </div>
+                                                    </div>
+                                                  </TooltipTrigger>
+                                                  <TooltipContent>
+                                                    <p className="w-[200px] text-xs">
+                                                      Max quantity a customer can select for this option.
+                                                    </p>
+                                                  </TooltipContent>
+                                                </Tooltip>
+                                              </TooltipProvider>
+                                            </div>
                                             <Button
                                               type="button"
                                               onClick={handleAddAddonToEditGroup}
@@ -1612,6 +1718,9 @@ const MenuManagementPage = () => {
                                             <span className="font-medium">{addon.name}</span>
                                             <span className="text-sm text-muted-foreground">
                                               {addon.price > 0 ? `+${addon.price.toFixed(2)}` : 'Free'}
+                                              {addon.maxQuantity > 1 && (
+                                                <span className="ml-2 bg-muted px-1.5 py-0.5 rounded textxs">Max: {addon.maxQuantity}</span>
+                                              )}
                                             </span>
                                           </div>
                                           <Button
@@ -1658,6 +1767,38 @@ const MenuManagementPage = () => {
                                       }}
                                       className="w-28"
                                     />
+                                    <div className="flex items-center">
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <div className="relative">
+                                              <Input
+                                                type="number"
+                                                min="1"
+                                                placeholder="Max Qty"
+                                                value={tempAddonMaxQty}
+                                                onChange={(e) => setTempAddonMaxQty(e.target.value)}
+                                                onKeyPress={(e) => {
+                                                  if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    handleAddAddonToNewGroup();
+                                                  }
+                                                }}
+                                                className="w-20 pr-7"
+                                              />
+                                              <div className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground cursor-help">
+                                                <HelpCircle className="h-3 w-3" />
+                                              </div>
+                                            </div>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p className="w-[200px] text-xs">
+                                              Max quantity a customer can select for this option (e.g., set to 2 to allow "Double Fries").
+                                            </p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </div>
                                     <Button
                                       type="button"
                                       onClick={handleAddAddonToNewGroup}

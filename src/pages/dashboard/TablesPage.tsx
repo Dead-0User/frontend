@@ -4,7 +4,8 @@ import { HeroButton, GlassButton, GhostButton } from "@/components/ui/button-var
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { QrCode, Plus, Trash2, Download, Edit3, X, Check, Zap } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { QrCode, Plus, Trash2, Download, Edit3, X, Check, Zap, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 import { QRCodeCanvas } from "qrcode.react";
@@ -17,14 +18,15 @@ interface Table {
   seats: number;
   createdAt: string;
   hasActiveOrders?: boolean;
+  allowOrdering?: boolean;
 }
 
 const TablesPage = () => {
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingTable, setEditingTable] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ tableName: "", seats: 4 });
-  const [createForm, setCreateForm] = useState({ tableName: "", seats: 4 });
+  const [editForm, setEditForm] = useState({ tableName: "", seats: 4, allowOrdering: true });
+  const [createForm, setCreateForm] = useState({ tableName: "", seats: 4, allowOrdering: true });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isQuickCreating, setIsQuickCreating] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ tableId: string; tableName: string } | null>(null);
@@ -125,6 +127,7 @@ const TablesPage = () => {
         body: JSON.stringify({
           tableName: tableName,
           seats: 4,
+          allowOrdering: true,
         }),
       });
 
@@ -175,13 +178,14 @@ const TablesPage = () => {
         body: JSON.stringify({
           tableName: createForm.tableName.trim(),
           seats: createForm.seats,
+          allowOrdering: createForm.allowOrdering,
         }),
       });
 
       const data = await response.json();
       if (data.success) {
         setTables([{ ...data.data, hasActiveOrders: false }, ...tables]);
-        setCreateForm({ tableName: "", seats: 4 });
+        setCreateForm({ tableName: "", seats: 4, allowOrdering: true });
         setShowCreateModal(false);
         toast({
           title: "Success",
@@ -225,6 +229,7 @@ const TablesPage = () => {
         body: JSON.stringify({
           tableName: editForm.tableName.trim(),
           seats: editForm.seats,
+          allowOrdering: editForm.allowOrdering,
         }),
       });
 
@@ -331,13 +336,13 @@ const TablesPage = () => {
   // Start editing
   const startEditing = (table: Table) => {
     setEditingTable(table._id);
-    setEditForm({ tableName: table.tableName, seats: table.seats });
+    setEditForm({ tableName: table.tableName, seats: table.seats, allowOrdering: table.allowOrdering !== false });
   };
 
   // Cancel editing
   const cancelEditing = () => {
     setEditingTable(null);
-    setEditForm({ tableName: "", seats: 4 });
+    setEditForm({ tableName: "", seats: 4, allowOrdering: true });
   };
 
   useEffect(() => {
@@ -416,11 +421,22 @@ const TablesPage = () => {
                   onChange={(e) => setCreateForm({ ...createForm, seats: parseInt(e.target.value) || 4 })}
                 />
               </div>
+              <div className="flex items-center justify-between space-x-2 pt-2">
+                <div className="space-y-0.5">
+                  <Label htmlFor="allowOrdering" className="text-sm font-medium">Allow Orders</Label>
+                  <p className="text-xs text-muted-foreground">Customers can place orders</p>
+                </div>
+                <Switch
+                  id="allowOrdering"
+                  checked={createForm.allowOrdering}
+                  onCheckedChange={(checked) => setCreateForm({ ...createForm, allowOrdering: checked })}
+                />
+              </div>
             </div>
             <div className="p-6 border-t border-border flex justify-end gap-2">
               <GhostButton onClick={() => {
                 setShowCreateModal(false);
-                setCreateForm({ tableName: "", seats: 4 });
+                setCreateForm({ tableName: "", seats: 4, allowOrdering: true });
               }}>
                 Cancel
               </GhostButton>
@@ -536,6 +552,14 @@ const TablesPage = () => {
                             value={editForm.seats}
                             onChange={(e) => setEditForm({ ...editForm, seats: parseInt(e.target.value) || 4 })}
                           />
+                          <div className="flex items-center justify-between space-x-2 py-2">
+                            <Label htmlFor={`allowOrdering-${table._id}`} className="text-sm">Allow Orders</Label>
+                            <Switch
+                              id={`allowOrdering-${table._id}`}
+                              checked={editForm.allowOrdering}
+                              onCheckedChange={(checked) => setEditForm({ ...editForm, allowOrdering: checked })}
+                            />
+                          </div>
                           <div className="flex gap-2">
                             <GlassButton size="sm" className="flex-1" onClick={() => handleEditTable(table._id)}>
                               <Check className="h-4 w-4 mr-1" />
@@ -555,6 +579,14 @@ const TablesPage = () => {
                           <p className="text-xs text-muted-foreground mt-2 break-all px-2">
                             {table.qrCodeUrl}
                           </p>
+                          {table.allowOrdering === false && (
+                            <div className="mt-3 flex justify-center">
+                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                                <Eye className="w-3 h-3 mr-1" />
+                                View Only
+                              </Badge>
+                            </div>
+                          )}
                         </div>
                       )}
 

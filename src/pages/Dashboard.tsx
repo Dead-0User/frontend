@@ -12,6 +12,7 @@ import ReservationsPage from "./dashboard/ReservationsPage";
 import FeedbackPage from "./dashboard/FeedbackPage";
 import StaffManagementPage from "./dashboard/StaffManagementPage";
 import AnalyticsPage from "./dashboard/AnalyticsPage";
+import TemplatesPage from "./dashboard/TemplatesPage";
 import SettingsPage from "./dashboard/SettingsPage";
 import { API_BASE_URL } from "@/config";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -195,6 +196,7 @@ const Dashboard = () => {
               <Route path="feedback" element={<FeedbackPage />} />
               <Route path="staff" element={<StaffManagementPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="templates" element={<TemplatesPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Routes>
           </main>

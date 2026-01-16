@@ -2924,7 +2924,7 @@ const OrdersPage = () => {
                                 .flatMap(i => i.ids || [i._id!]);
 
                               if (pendingItems.length > 0) {
-                                handleBulkUpdateStatus(order.id, "preparing", pendingItems);
+                                handleBulkUpdateStatus(order.id, "accepted", pendingItems);
                               }
                             }}
                           >
@@ -2951,6 +2951,39 @@ const OrdersPage = () => {
                             Cancel Order
                           </Button>
                         </div>
+                      )}
+
+                      {/* Prepare: Show if order has accepted items */}
+                      {order.itemsDetailed.some(i => !i.isRemoved && i.status === 'accepted') && order.status !== 'served' && order.status !== 'paid' && (
+                        <Button
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow transition-all duration-200 gap-1 sm:gap-2 flex-1 sm:flex-none text-xs sm:text-sm"
+                          disabled={updatingOrders.has(order.id)}
+                          onClick={() => {
+                            const selected = itemSelections[order.id] || [];
+                            let itemsToUse = selected;
+                            if (selected.length === 0) {
+                              itemsToUse = order.itemsDetailed
+                                .filter(i => !i.isRemoved && i.status === 'accepted' && (i.ids?.length || i._id))
+                                .flatMap(i => i.ids || [i._id!]);
+                              setItemSelections(prev => ({ ...prev, [order.id]: itemsToUse }));
+                            }
+                            if (itemsToUse.length > 0) {
+                              handleBulkUpdateStatus(order.id, "preparing", itemsToUse);
+                            }
+                          }}
+                        >
+                          {updatingOrders.has(order.id) ? (
+                            <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                          ) : itemSelections[order.id]?.length > 0 ? (
+                            `Prepare ${itemSelections[order.id].length} Items`
+                          ) : (
+                            <>
+                              <Utensils className="h-3 w-3 sm:h-4 sm:w-4" />
+                              Prepare
+                            </>
+                          )}
+                        </Button>
                       )}
 
                       {/* Start Preparing: Show if order has pending items AND we are NOT in pending state (already accepted but new items added) */}

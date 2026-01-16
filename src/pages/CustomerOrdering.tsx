@@ -76,6 +76,7 @@ interface TableData {
   id: string;
   tableName: string;
   seats: number;
+  allowOrdering?: boolean;
   restaurantId: string;
 }
 
@@ -98,6 +99,7 @@ interface TemplateProps {
   waiterCalled: boolean;
   selectedCategory: string;
   showVegOnly: boolean;
+  dietaryFilter: 'all' | 'veg' | 'non-veg';
   searchQuery: string;
   priceFilter: string;
   showFilters: boolean;
@@ -113,6 +115,7 @@ interface TemplateProps {
   setOrderStatus: (status: string) => void;
   setSelectedCategory: (category: string) => void;
   setShowVegOnly: (show: boolean) => void;
+  setDietaryFilter: (filter: 'all' | 'veg' | 'non-veg') => void;
   setSearchQuery: (query: string) => void;
   setPriceFilter: (filter: string) => void;
   setShowFilters: (show: boolean) => void;
@@ -157,7 +160,13 @@ const CustomerPageContainer = () => {
   const [isCallingWaiter, setIsCallingWaiter] = useState<boolean>(false);
   const [waiterCalled, setWaiterCalled] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [showVegOnly, setShowVegOnly] = useState<boolean>(false);
+  const [dietaryFilter, setDietaryFilter] = useState<'all' | 'veg' | 'non-veg'>("all");
+
+  // Backward compatibility for templates using showVegOnly
+  const setShowVegOnly = (show: boolean) => {
+    setDietaryFilter(show ? 'veg' : 'all');
+  };
+  const showVegOnly = dietaryFilter === 'veg';
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [priceFilter, setPriceFilter] = useState<string>("all");
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -551,6 +560,7 @@ const CustomerPageContainer = () => {
     selectedCategory,
     showVegOnly,
     searchQuery,
+    dietaryFilter,
     priceFilter,
     showFilters,
     onAddToCart: addToCart,
@@ -565,6 +575,7 @@ const CustomerPageContainer = () => {
     setOrderStatus,
     setSelectedCategory,
     setShowVegOnly,
+    setDietaryFilter,
     setSearchQuery,
     setPriceFilter,
     setShowFilters,
@@ -576,51 +587,7 @@ const CustomerPageContainer = () => {
 
   // Fallback generic confirmation view in case a template has issues rendering.
   // This ensures customers always see something after placing an order.
-  if (!loading && orderPlaced && orderId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-slate-200 p-8 text-center space-y-4">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-            <span className="text-3xl">✅</span>
-          </div>
-          <h2 className="text-2xl font-bold text-slate-900">
-            Order placed successfully
-          </h2>
-          <p className="text-sm text-slate-600">
-            Your order has been sent to the kitchen. You can stay on this page
-            and we&apos;ll keep updating the status automatically.
-          </p>
-          <div className="rounded-lg bg-slate-50 border border-slate-200 px-4 py-3 text-left text-sm space-y-1">
-            {restaurantData?.name && (
-              <p className="font-semibold text-slate-800">
-                {restaurantData.name}
-              </p>
-            )}
-            {tableData?.tableName && (
-              <p className="text-slate-600">
-                Table: <span className="font-medium">{tableData.tableName}</span>
-              </p>
-            )}
-            <p className="text-slate-600">
-              Order ID:{" "}
-              <span className="font-mono font-semibold">
-                {orderId.slice(-8).toUpperCase()}
-              </span>
-            </p>
-            <p className="text-slate-600">
-              Status: <span className="font-semibold">{orderStatus}</span>
-            </p>
-          </div>
-          <button
-            onClick={() => setOrderPlaced(false)}
-            className="mt-2 inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow hover:bg-slate-800 transition-colors"
-          >
-            Back to menu
-          </button>
-        </div>
-      </div>
-    );
-  }
+
 
   return <Template {...templateProps} />;
 };

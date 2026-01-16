@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   Home,
   QrCode,
+  Layout,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -63,6 +64,11 @@ const getSidebarItems = (basePath: string): SidebarItem[] => [
     title: "Customers & Feedback",
     href: `${basePath}/feedback`,
     icon: Star,
+  },
+  {
+    title: "Templates",
+    href: `${basePath}/templates`,
+    icon: Layout,
   },
   {
     title: "Settings",

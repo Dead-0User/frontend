@@ -23,7 +23,7 @@ const Navbar = () => {
                 <div className="flex items-center gap-4">
                     <Button
                         variant="ghost"
-                        className="hidden text-gray-900 hover:bg-gray-50 md:flex"
+                        className="text-gray-900 hover:bg-gray-50"
                         onClick={() => navigate("/login")}
                     >
                         Log in

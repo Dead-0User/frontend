@@ -86,6 +86,7 @@ interface TableData {
   tableName: string;
   seats: number;
   restaurantId: string;
+  allowOrdering?: boolean;
 }
 
 interface TemplateMinimalProps {
@@ -107,6 +108,7 @@ interface TemplateMinimalProps {
   waiterCalled: boolean;
   selectedCategory: string;
   showVegOnly: boolean;
+  dietaryFilter: 'all' | 'veg' | 'non-veg';
   searchQuery: string;
   priceFilter: string;
   showFilters: boolean;
@@ -122,6 +124,7 @@ interface TemplateMinimalProps {
   setOrderStatus: (status: string) => void;
   setSelectedCategory: (category: string) => void;
   setShowVegOnly: (show: boolean) => void;
+  setDietaryFilter: (filter: 'all' | 'veg' | 'non-veg') => void;
   setSearchQuery: (query: string) => void;
   setPriceFilter: (filter: string) => void;
   setShowFilters: (show: boolean) => void;
@@ -130,6 +133,243 @@ interface TemplateMinimalProps {
   getCartItemCount: () => number;
   formatPrice: (price: number) => string;
 }
+
+interface MinimalMenuItemProps {
+  item: MenuItem;
+  onAddToCart: (item: MenuItem, selectedAddons: Addon[]) => void;
+  onUpdateQuantity: (cartItemId: string, change: number) => void;
+  getItemQuantity: (itemId: string) => number;
+  formatPrice: (price: number) => string;
+  getCartItem: CartItem | undefined;
+  allowOrdering: boolean;
+  onViewDetails: () => void;
+}
+
+const MinimalMenuItem = ({ item, onAddToCart, onUpdateQuantity, getItemQuantity, formatPrice, getCartItem, allowOrdering, onViewDetails }: MinimalMenuItemProps) => {
+  const [selectedAddons, setSelectedAddons] = useState<Record<number, Addon[]>>({});
+  const [showAddons, setShowAddons] = useState(false);
+
+  const hasAddonGroups = item.addonGroups && item.addonGroups.length > 0;
+  const qty = getItemQuantity(item.id);
+
+  const toggleAddon = (groupIndex: number, addon: Addon) => {
+    const group = item.addonGroups[groupIndex];
+    setSelectedAddons(prev => {
+      const currentGroupAddons = prev[groupIndex] || [];
+      if (group.multiSelect) {
+        const exists = currentGroupAddons.some(a => a.name === addon.name);
+        if (exists) {
+          return { ...prev, [groupIndex]: currentGroupAddons.filter(a => a.name !== addon.name) };
+        } else {
+          return { ...prev, [groupIndex]: [...currentGroupAddons, addon] };
+        }
+      } else {
+        const isSelected = currentGroupAddons.some(a => a.name === addon.name);
+        if (isSelected) {
+          return { ...prev, [groupIndex]: [] }; // Deselect
+        } else {
+          return { ...prev, [groupIndex]: [addon] };
+        }
+      }
+    });
+  };
+
+  const isAddonSelected = (groupIndex: number, addon: Addon) => {
+    return selectedAddons[groupIndex]?.some(a => a.name === addon.name);
+  };
+
+  const handleAddClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (allowOrdering) {
+      if (hasAddonGroups && !showAddons) {
+        setShowAddons(true);
+      } else {
+        const allSelectedAddons = Object.values(selectedAddons).flat();
+        onAddToCart(item, allSelectedAddons);
+        setShowAddons(false);
+        setSelectedAddons({});
+      }
+    } else {
+      // Just open details if view-only (handled by parent passing setSelectedItem?) 
+      // Actually MinimalMenuItem doesn't receive setSelectedItem.
+      // We should probably rely on the parent's onClick handler for the whole card,
+      // but the "View Options" button needs to trigger it. 
+      // The parent passes `item` to `setSelectedItem` when clicking the image/details.
+      // Let's rely on the parent `setSelectedItem` being passed or triggered.
+      // Looking at the code: parent passes `item` to `setSelectedItem` on image click?
+      // Wait, MinimalMenuItem is inside the map. TemplateMinimal has setSelectedItem.
+      // MinimalMenuItem props: item, onAddToCart, etc.
+      // We might need to pass onSelect or similar?
+      // Actually, looking at lines 1215+, setSelectedItem is used for the modal.
+      // Looking at lines 1020+ (previous attempted edit), I see `setSelectedItem` used there in the parent component loop.
+      // The MinimalMenuItem is used inside the loop.
+      // Let's modify MinimalMenuItem to accept an `onViewDetails` prop.
+    }
+  };
+
+  return (
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 20 },
+        visible: { opacity: 1, y: 0 }
+      }}
+      className="flex flex-col gap-4 group bg-white p-3 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors shadow-sm"
+    >
+      <div className="flex gap-4">
+        {/* Image (Left) */}
+        {item.image && (
+          <div className="w-28 h-28 shrink-0 rounded-lg overflow-hidden bg-gray-100 relative cursor-pointer">
+            <img
+              src={`${API_BASE_URL}${item.image}`}
+              alt={item.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+        )}
+
+        {/* Details (Right) */}
+        <div className="flex-1 flex flex-col min-w-0 relative min-h-[7rem]">
+          <div className="pr-6 cursor-pointer">
+            <h3 className="text-lg font-bold text-gray-900 leading-snug mb-1 cursor-pointer">
+              {item.name}
+            </h3>
+            <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-1 cursor-pointer">
+              {item.description}
+            </p>
+          </div>
+
+          <div className="mt-auto flex items-end justify-between">
+            <span className="text-lg font-bold text-gray-900 pb-1">
+              {formatPrice(item.price)}
+            </span>
+
+            {/* ADD BUTTON / COUNTER */}
+            {allowOrdering ? (
+              <div onClick={(e) => e.stopPropagation()}>
+                {qty === 0 || showAddons ? (
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={handleAddClick}
+                    className={`px-6 py-2 rounded-lg font-bold text-sm shadow-sm transition-colors uppercase tracking-wide border ${showAddons
+                      ? "bg-black text-white border-black"
+                      : "bg-white text-black border-black hover:bg-black hover:text-white"}`}
+                  >
+                    {showAddons ? (hasAddonGroups ? "Add" : "Add") : "ADD"}
+                  </motion.button>
+                ) : (
+                  <div className="flex items-center h-9 bg-white border border-gray-300 rounded-lg shadow-sm">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (getCartItem) onUpdateQuantity(getCartItem.id, -1);
+                      }}
+                      className="w-8 h-full flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-l-lg active:bg-gray-200"
+                    >
+                      <Minus className="w-3.5 h-3.5" />
+                    </button>
+                    <span className="w-8 text-center text-black font-bold text-sm">
+                      {qty}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (getCartItem) onUpdateQuantity(getCartItem.id, 1);
+                      }}
+                      className="w-8 h-full flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-r-lg active:bg-gray-200"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewDetails();
+                }}
+                className="px-6 py-2 rounded-lg font-bold text-sm shadow-sm transition-colors uppercase tracking-wide border bg-white text-black border-black hover:bg-black hover:text-white"
+              >
+                View
+              </motion.button>
+            )}
+          </div>
+
+          {/* Veg/Non-Veg Icon */}
+          <div className="absolute top-0 right-0">
+            <div
+              className={`w-4 h-4 border flex items-center justify-center ${item.isVeg ? "border-green-600" : "border-red-600"
+                }`}
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"
+                  }`}
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Inline Addons Area (Classic Style for Minimal) */}
+      <AnimatePresence>
+        {showAddons && hasAddonGroups && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="p-4 bg-white rounded-xl border border-gray-100 space-y-4 mb-2 mt-2">
+              {item.addonGroups.map((group, gIdx) => (
+                <div key={gIdx} className="p-3 bg-gray-50 rounded-xl">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-bold text-sm text-gray-800">{group.title}</h4>
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full bg-white">
+                      {group.multiSelect ? "Multi-select" : "Select 1"}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {group.items.map((addon, aIdx) => {
+                      const selected = isAddonSelected(gIdx, addon);
+                      return (
+                        <div
+                          key={aIdx}
+                          onClick={(e) => { e.stopPropagation(); toggleAddon(gIdx, addon); }}
+                          className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all bg-white ${selected
+                            ? "border-black shadow-sm"
+                            : "border-gray-100 hover:border-gray-200"
+                            }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${selected
+                              ? "bg-black border-black text-white"
+                              : "border-gray-300 bg-white"
+                              }`}>
+                              {selected && <Check className="w-3.5 h-3.5" />}
+                            </div>
+                            <span className={`text-sm font-medium ${selected ? "text-black" : "text-gray-700"}`}>
+                              {addon.name}
+                            </span>
+                          </div>
+                          {addon.price > 0 && (
+                            <span className="text-xs font-medium text-gray-500">
+                              +{formatPrice(addon.price)}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
 
 const TemplateMinimal = (props: TemplateMinimalProps) => {
   const {
@@ -170,6 +410,8 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
     setPriceFilter,
     setShowFilters,
     setShowVegOnly,
+    dietaryFilter,
+    setDietaryFilter,
   } = props;
 
   const [showCart, setShowCart] = useState(false);
@@ -199,6 +441,30 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
       }
       return next;
     });
+  };
+
+  const getStatusColor = (status: string): string => {
+    switch (status) {
+      case "pending": return "bg-gray-600 text-white";
+      case "preparing": return "bg-blue-500 text-white";
+      case "ready": return "bg-green-500 text-white";
+      case "served": return "bg-gray-500 text-white";
+      case "paid": return "bg-emerald-600 text-white";
+      case "cancelled": return "bg-red-500 text-white";
+      default: return "bg-orange-500 text-white";
+    }
+  };
+
+  const getStatusText = (status: string): string => {
+    switch (status) {
+      case "pending": return "Order Received";
+      case "preparing": return "Preparing";
+      case "ready": return "Ready";
+      case "served": return "Served";
+      case "paid": return "Paid";
+      case "cancelled": return "Cancelled";
+      default: return "Processing";
+    }
   };
 
   const scrollToSection = (sectionId: string) => {
@@ -308,7 +574,11 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
     .filter((item) => {
       const matchesCategory =
         selectedCategory === "all" || item.sectionId === selectedCategory;
-      const matchesVeg = !showVegOnly || item.isVeg;
+
+      let matchesVeg = true;
+      if (dietaryFilter === 'veg') matchesVeg = item.isVeg;
+      if (dietaryFilter === 'non-veg') matchesVeg = !item.isVeg;
+
       const matchesSearch =
         !searchQuery ||
         item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -431,35 +701,41 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
     return (
       <div className="fixed inset-0 bg-gray-50 flex justify-center">
         <div className="w-full max-w-[400px] h-full relative bg-white flex flex-col items-center justify-center p-4 border-x shadow-2xl">
-          <div className="max-w-md w-full text-center bg-white p-8">
+          <div className="max-w-md w-full text-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <CheckCircle className="h-16 w-16 text-black mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Order Confirmed</h2>
-            <p className="text-gray-500 mb-8">Your order has been sent to the kitchen.</p>
+            <h2 className="text-2xl font-bold mb-2">Order Confirmed!</h2>
+            <p className="text-gray-500 mb-6">Your order has been sent to the kitchen.</p>
 
-            <div className="bg-gray-50 rounded-2xl p-6 mb-8 text-left">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className="font-bold text-xl">{restaurantData?.name}</p>
-                  <p className="text-gray-500">{tableData?.tableName}</p>
-                </div>
-                <div className={`px-3 py-1 rounded-full text-sm font-bold ${orderStatus === 'served' || orderStatus === 'paid'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-blue-100 text-blue-800'
-                  }`}>
-                  {orderStatus.toUpperCase()}
-                </div>
+            <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-100">
+              <p className="font-bold text-lg mb-1">{restaurantData?.name}</p>
+              <p className="text-sm text-gray-500 mb-3">{tableData?.tableName}</p>
+
+              <div className="flex items-center justify-center gap-2 mb-3">
+                <span className="text-sm text-gray-500">Order ID:</span>
+                <span className="text-sm font-mono font-bold text-black">
+                  {orderId?.slice(-8).toUpperCase()}
+                </span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500 font-mono bg-white p-2 rounded-lg border border-gray-100">
-                <span>Order ID:</span>
-                <span className="font-bold text-black">{orderId?.slice(-8).toUpperCase()}</span>
+
+              <div
+                className={`inline-block px-4 py-2 rounded-lg mb-3 font-semibold ${orderStatus === 'served' || orderStatus === 'paid'
+                  ? "bg-green-100 text-green-800"
+                  : "bg-black text-white"
+                  }`}
+              >
+                {getStatusText(orderStatus)}
               </div>
+
+              <p className="text-xs text-gray-400">
+                Status updates automatically
+              </p>
             </div>
 
             <div className="space-y-3">
               <button
                 onClick={onCallWaiter}
                 disabled={isCallingWaiter || waiterCalled}
-                className={`w-full py-4 rounded-xl font-bold text-lg border-2 transition-all flex items-center justify-center gap-2 ${waiterCalled
+                className={`w-full py-3 rounded-xl font-bold text-lg border-2 transition-all flex items-center justify-center gap-2 ${waiterCalled
                   ? "bg-green-50 border-green-500 text-green-700"
                   : "border-black text-black hover:bg-gray-50"
                   }`}
@@ -481,9 +757,9 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
 
               <button
                 onClick={() => setOrderPlaced(false)}
-                className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-gray-900 transition-colors"
+                className="w-full bg-black text-white py-3 rounded-xl font-bold text-lg shadow-lg hover:bg-gray-900 transition-colors"
               >
-                Order More Items
+                Place Another Order
               </button>
             </div>
           </div>
@@ -502,12 +778,12 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
             <button className="p-1" onClick={() => setShowSidebar(true)}>
               <Menu className="w-7 h-7 text-black" />
             </button>
+            <div className="flex-1"></div>
             <button
               onClick={() => setShowFeedback(true)}
-              className="flex items-center gap-1.5 bg-black text-white px-3 py-1.5 rounded-full text-sm font-medium hover:opacity-90"
+              className="p-2 text-gray-500 hover:text-black transition-colors"
             >
-              <span>Feedback</span>
-              <Pencil className="w-3.5 h-3.5" />
+              <Pencil className="w-5 h-5" />
             </button>
           </div>
 
@@ -545,7 +821,7 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
                 onClick={() => setShowCategoryMenu(true)}
                 className="bg-black text-white px-6 py-2 rounded-full text-base font-medium shadow-md transition-transform"
               >
-                Menu
+                Categories
               </motion.button>
               <div className="flex items-center gap-3">
                 <motion.div
@@ -576,18 +852,43 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto bg-white">
           <div className="pb-32">
+            {/* Active Order Status Bar */}
+            {existingOrderId && !orderPlaced && !['paid', 'cancelled'].includes(orderStatus) && (
+              <div className="mx-5 mt-6 mb-4 bg-white border-2 border-black text-black rounded-2xl p-4 shadow-lg">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5" />
+                    <div>
+                      <p className="font-semibold">Active Order</p>
+                      <p className="text-sm text-gray-600">
+                        #{existingOrderId?.slice(-8).toUpperCase()}
+                      </p>
+                      <div className={`inline-block px-2 py-0.5 rounded-md text-xs font-semibold mt-1 ${getStatusColor(orderStatus)}`}>
+                        {getStatusText(orderStatus)}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setOrderPlaced(true)}
+                    className="px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+                  >
+                    View
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Sections */}
             {sectionsWithItems.length > 0 ? (
               <div className="divide-y divide-gray-100">
                 {sectionsWithItems.map((section) => (
-                  <div key={section.id} id={`section-${section.id}`} className="pt-6 pb-4 border-b border-gray-50 last:border-0">
+                  <div key={section.id} id={`section-${section.id}`} className="mb-4 pt-6 pb-4 border border-gray-100 rounded-2xl">
                     <div
-                      className="px-5 mb-6 flex items-start justify-between cursor-pointer"
+                      className="mx-5 mb-6 px-4 py-3 bg-gray-50 rounded-xl flex items-center justify-between cursor-pointer"
                       onClick={() => toggleSection(section.id)}
                     >
-                      <h2 className="text-2xl font-bold text-black tracking-tight">{section.name}</h2>
-                      <ChevronUp className={`w-6 h-6 text-gray-900 mt-1 transition-transform duration-300 ${collapsedSections.has(section.id) ? 'rotate-180' : ''}`} />
+                      <h2 className="text-xl font-bold text-black tracking-tight">{section.name}</h2>
+                      <ChevronUp className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${collapsedSections.has(section.id) ? 'rotate-180' : ''}`} />
                     </div>
 
                     {!collapsedSections.has(section.id) && (
@@ -605,98 +906,22 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
                         }}
                         className="space-y-6 px-5"
                       >
-                        {section.items.map((item) => {
-                          const qty = getItemQuantity(item.id);
-                          return (
-                            <motion.div
-                              variants={{
-                                hidden: { opacity: 0, y: 20 },
-                                visible: { opacity: 1, y: 0 }
-                              }}
-                              key={item.id}
-                              whileTap={{ scale: 0.98 }}
-                              className="flex gap-4 group"
-                              onClick={() => {
-                                setSelectedItem(item);
-                                setSelectedAddons([]);
-                              }}
-                            >
-                              {/* Image (Left) */}
-                              {item.image && (
-                                <div className="w-32 h-32 shrink-0 rounded-2xl overflow-hidden bg-gray-100 relative cursor-pointer">
-                                  <img
-                                    src={`${API_BASE_URL}${item.image}`}
-                                    alt={item.name}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                  />
-                                </div>
-                              )}
-
-                              {/* Details (Right) */}
-                              <div className="flex-1 flex flex-col min-w-0 relative h-32">
-                                <div className="pr-6 cursor-pointer">
-                                  <h3 className="text-lg font-bold text-gray-900 leading-snug mb-1 cursor-pointer">
-                                    {item.name}
-                                  </h3>
-                                  <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed mb-1 cursor-pointer">
-                                    {item.description}
-                                  </p>
-                                </div>
-
-                                <div className="mt-auto flex items-end justify-between">
-                                  <span className="text-lg font-bold text-gray-900 pb-1">
-                                    {formatPrice(item.price)}
-                                  </span>
-
-                                  {/* ADD BUTTON / COUNTER */}
-                                  <div onClick={(e) => e.stopPropagation()}>
-                                    {qty === 0 ? (
-                                      <motion.button
-                                        whileTap={{ scale: 0.9 }}
-                                        onClick={(e) => handleListAddClick(item, e)}
-                                        className="px-6 py-2 rounded-lg border border-gray-300 text-green-600 font-bold text-sm bg-white shadow-sm hover:bg-green-50 transition-colors uppercase tracking-wide"
-                                      >
-                                        + Add
-                                      </motion.button>
-                                    ) : (
-                                      <div className="flex items-center h-9 bg-white border border-gray-300 rounded-lg shadow-sm">
-                                        <button
-                                          onClick={(e) => handleListDecreaseClick(item, e)}
-                                          className="w-8 h-full flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-l-lg active:bg-gray-200"
-                                        >
-                                          <Minus className="w-3.5 h-3.5" />
-                                        </button>
-                                        <span className="w-8 text-center text-green-700 font-bold text-sm">
-                                          {qty}
-                                        </span>
-                                        <button
-                                          onClick={(e) => handleListIncreaseClick(item, e)}
-                                          className="w-8 h-full flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded-r-lg active:bg-gray-200"
-                                        >
-                                          <Plus className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Veg/Non-Veg Icon */}
-                                <div className="absolute top-0 right-0">
-                                  <div
-                                    className={`w-4 h-4 border flex items-center justify-center ${item.isVeg ? "border-green-600" : "border-red-600"
-                                      }`}
-                                  >
-                                    <div
-                                      className={`w-2 h-2 rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"
-                                        }`}
-                                    ></div>
-                                  </div>
-                                </div>
-                              </div>
-                            </motion.div>
-                          );
-                        })}
-                      </motion.div>
+                        {section.items.map((item) => (
+                          <MinimalMenuItem
+                            key={item.id}
+                            item={item}
+                            onAddToCart={(item, addons) => {
+                              onAddToCart(item, addons);
+                              setSelectedItem(null);
+                            }}
+                            onUpdateQuantity={onUpdateQuantity}
+                            getItemQuantity={getItemQuantity}
+                            formatPrice={formatPrice}
+                            getCartItem={cart.find(c => c.menuItemId === item.id)}
+                            allowOrdering={tableData?.allowOrdering !== false}
+                            onViewDetails={() => setSelectedItem(item)}
+                          />
+                        ))}</motion.div>
                     )}
                   </div>
                 ))}
@@ -789,44 +1014,32 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Veg Only Toggle */}
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-                        <div className="w-3 h-3 rounded-full bg-green-600"></div>
-                      </div>
-                      <span className="font-bold text-gray-900">Veg Only</span>
-                    </div>
-                    <button
-                      onClick={() => setShowVegOnly(!showVegOnly)}
-                      className={`w-12 h-7 rounded-full transition-colors relative ${showVegOnly ? "bg-green-600" : "bg-gray-300"
-                        }`}
-                    >
-                      <motion.div
-                        className="absolute top-1 left-1 w-5 h-5 rounded-full bg-white"
-                        animate={{ x: showVegOnly ? 20 : 0 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                      />
-                    </button>
-                  </div>
-
-                  {/* Price Filter */}
+                  {/* Dietary Filter (Classic Style) */}
                   <div>
-                    <h3 className="font-bold text-gray-900 mb-3">Price Range</h3>
-                    <div className="grid grid-cols-3 gap-3">
-                      {["all", "low", "medium", "high"].map((filter) => (
-                        <motion.button
-                          key={filter}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setPriceFilter(filter)}
-                          className={`py-2 rounded-lg text-sm font-bold capitalize transition-colors ${priceFilter === filter
-                            ? "bg-black text-white"
-                            : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    <h3 className="font-bold text-gray-900 mb-3">Dietary Preference</h3>
+                    <div className="space-y-2">
+                      {[
+                        { value: 'all', label: 'All Items' },
+                        { value: 'veg', label: 'Veg Only' },
+                        { value: 'non-veg', label: 'Non-Veg Only' }
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setDietaryFilter(option.value as any)}
+                          className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${dietaryFilter === option.value
+                            ? "border-black bg-gray-50 shadow-sm"
+                            : "border-gray-100 hover:border-gray-200"
                             }`}
-                          style={{ gridColumn: filter === "all" ? "1 / -1" : "auto" }}
                         >
-                          {filter === "all" ? "Any Price" : filter}
-                        </motion.button>
+                          <span className={`font-medium ${dietaryFilter === option.value ? "text-black" : "text-gray-600"}`}>
+                            {option.label}
+                          </span>
+                          {dietaryFilter === option.value && (
+                            <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center">
+                              <Check className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -834,8 +1047,7 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
                   <div className="flex gap-3 pt-4 border-t border-gray-100">
                     <button
                       onClick={() => {
-                        setShowVegOnly(false);
-                        setPriceFilter("all");
+                        setDietaryFilter("all");
                       }}
                       className="flex-1 py-3 text-gray-500 font-bold hover:text-black transition-colors"
                     >
@@ -857,7 +1069,7 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
 
         {/* Floating Cart Bar */}
         <AnimatePresence>
-          {cart.length > 0 && (
+          {cart.length > 0 && tableData?.allowOrdering !== false && (
             <motion.div
               initial={{ y: 100, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -1122,21 +1334,23 @@ const TemplateMinimal = (props: TemplateMinimalProps) => {
 
                 {/* Modal Footer Action */}
                 <div className="p-4 border-t border-gray-100 bg-white">
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleAddToCartFromModal}
-                    className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:opacity-90"
-                  >
-                    Add Item{" "}
-                    {formatPrice(
-                      getItemTotal({
-                        ...selectedItem,
-                        quantity: 1,
-                        addons: selectedAddons,
-                        menuItemId: selectedItem.id,
-                      } as CartItem) || selectedItem.price
-                    )}
-                  </motion.button>
+                  {tableData?.allowOrdering !== false && (
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleAddToCartFromModal}
+                      className="w-full bg-black text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:opacity-90"
+                    >
+                      Add Item{" "}
+                      {formatPrice(
+                        getItemTotal({
+                          ...selectedItem,
+                          quantity: 1,
+                          addons: selectedAddons,
+                          menuItemId: selectedItem.id,
+                        } as CartItem) || selectedItem.price
+                      )}
+                    </motion.button>
+                  )}
                 </div>
               </motion.div>
             </motion.div>

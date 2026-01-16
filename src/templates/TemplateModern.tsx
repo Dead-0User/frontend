@@ -13,7 +13,10 @@ import {
   ChevronRight,
   Leaf,
   Coffee,
+  SlidersHorizontal,
+  Menu,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { API_BASE_URL } from "@/config";
 
 interface Addon {
@@ -69,6 +72,7 @@ interface TableData {
   tableName: string;
   seats: number;
   restaurantId: string;
+  allowOrdering?: boolean;
 }
 
 interface TemplateProps {
@@ -105,6 +109,8 @@ interface TemplateProps {
   setOrderStatus: (status: string) => void;
   setSelectedCategory: (category: string) => void;
   setShowVegOnly: (show: boolean) => void;
+  dietaryFilter: 'all' | 'veg' | 'non-veg';
+  setDietaryFilter: (filter: 'all' | 'veg' | 'non-veg') => void;
   setSearchQuery: (query: string) => void;
   setPriceFilter: (filter: string) => void;
   setShowFilters: (show: boolean) => void;
@@ -146,16 +152,22 @@ const TemplateDarkCafe = (props: TemplateProps) => {
     setOrderId,
     setOrderStatus,
     setSelectedCategory,
-    setShowVegOnly,
+    // setShowVegOnly, // Deprecated
+    dietaryFilter,
+    setDietaryFilter,
     setSearchQuery,
     setShowFilters,
     getItemTotal,
     getCartTotal,
     getCartItemCount,
     formatPrice,
+    priceFilter,
+    setPriceFilter,
   } = props;
 
   const [showCart, setShowCart] = useState<boolean>(false);
+  const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   const getStatusColor = (status: string): string => {
     switch (status) {
@@ -203,11 +215,21 @@ const TemplateDarkCafe = (props: TemplateProps) => {
           const matchesCategory =
             selectedCategory === "all" ||
             section.name.toLowerCase().includes(selectedCategory.toLowerCase());
-          const matchesVeg = !showVegOnly || item.isVeg;
+
+          let matchesVeg = true;
+          if (dietaryFilter === 'veg') matchesVeg = item.isVeg;
+          if (dietaryFilter === 'non-veg') matchesVeg = !item.isVeg;
+
           const matchesSearch =
             item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             item.description.toLowerCase().includes(searchQuery.toLowerCase());
-          return matchesCategory && matchesVeg && matchesSearch;
+
+          let matchesPrice = true;
+          // if (priceFilter === "low") matchesPrice = item.price <= 250;
+          // if (priceFilter === "medium") matchesPrice = item.price > 250 && item.price <= 500;
+          // if (priceFilter === "high") matchesPrice = item.price > 500;
+
+          return matchesCategory && matchesVeg && matchesSearch && matchesPrice;
         }),
       }))
       .filter((section) => section.items.length > 0);
@@ -215,14 +237,14 @@ const TemplateDarkCafe = (props: TemplateProps) => {
 
   const clearFilters = () => {
     setSelectedCategory("all");
-    setShowVegOnly(false);
+    setDietaryFilter("all"); // Reset to all
     setSearchQuery("");
   };
 
   const activeFiltersCount = (): number => {
     let count = 0;
     if (selectedCategory !== "all") count++;
-    if (showVegOnly) count++;
+    if (dietaryFilter !== "all") count++;
     if (searchQuery) count++;
     return count;
   };
@@ -357,25 +379,24 @@ const TemplateDarkCafe = (props: TemplateProps) => {
         <div className="flex-1 overflow-y-auto pb-32 scrollbar-hide">
           <div className="sticky top-0 z-40 bg-stone-900/95 backdrop-blur border-b border-amber-900/20 shadow-lg">
             <div className="px-4 py-4">
-              <div className="flex items-center justify-between">
+              {/* Top Bar: Brand & Table */}
+              <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="bg-gradient-to-br from-amber-600 to-yellow-700 p-3 rounded-xl shadow-lg">
-                    <Coffee className="h-6 w-6 text-white" />
+                  <div className="bg-amber-600 p-2 rounded-lg">
+                    <Utensils className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <h1 className="text-xl font-bold text-amber-100">
-                      {restaurantData?.name}
-                    </h1>
-                    <p className="text-sm text-stone-400">{tableData?.tableName}</p>
+                    <p className="text-xs text-stone-400">{tableData?.tableName}</p>
                   </div>
                 </div>
+
                 <button
                   onClick={onCallWaiter}
                   disabled={isCallingWaiter || waiterCalled}
                   className={`${waiterCalled
                     ? "bg-green-700 text-white"
                     : "bg-stone-800 text-amber-100 hover:bg-stone-700"
-                    } px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
+                    } px-3 py-2 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
                 >
                   {isCallingWaiter ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -387,11 +408,74 @@ const TemplateDarkCafe = (props: TemplateProps) => {
                   ) : (
                     <>
                       <Bell className="h-4 w-4" />
-                      Call
+                      Call Waiter
                     </>
                   )}
                 </button>
               </div>
+
+              {/* Controls Row: Search & Filters */}
+              {showSearch ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex items-center gap-2"
+                >
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="Search dishes..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 bg-stone-800 border border-stone-700 rounded-lg text-amber-100 placeholder-stone-500 focus:outline-none focus:ring-1 focus:ring-amber-600"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowSearch(false);
+                      setSearchQuery("");
+                    }}
+                    className="p-2 text-stone-400 hover:text-amber-100"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </motion.div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    className="w-10 h-10 rounded-full border border-stone-700 bg-stone-800 text-stone-400 hover:bg-stone-700 flex items-center justify-center cursor-pointer transition-colors"
+                    onClick={() => setShowCategoryMenu(true)}
+                  >
+                    <Menu className="w-5 h-5" />
+                  </motion.button>
+
+                  <div className="flex items-center gap-3">
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      className={`w-10 h-10 rounded-full border flex items-center justify-center cursor-pointer transition-colors ${searchQuery
+                        ? "border-amber-600 bg-amber-600 text-white"
+                        : "border-stone-700 bg-stone-800 text-stone-400 hover:bg-stone-700"
+                        }`}
+                      onClick={() => setShowSearch(true)}
+                    >
+                      <Search className="w-5 h-5" />
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      className={`w-10 h-10 rounded-full border flex items-center justify-center cursor-pointer transition-colors ${dietaryFilter !== "all" || priceFilter !== "all"
+                        ? "border-amber-600 bg-amber-600 text-white"
+                        : "border-stone-700 bg-stone-800 text-stone-400 hover:bg-stone-700"
+                        }`}
+                      onClick={() => setShowFilters(true)}
+                    >
+                      <SlidersHorizontal className="w-5 h-5" />
+                    </motion.button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -436,79 +520,7 @@ const TemplateDarkCafe = (props: TemplateProps) => {
                 </div>
               )}
 
-            <div className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-amber-600" />
-                <input
-                  placeholder="Search menu..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3 bg-stone-800 border border-stone-700 rounded-xl text-amber-100 placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-              <button
-                onClick={() => setShowVegOnly(!showVegOnly)}
-                className={`${showVegOnly
-                  ? "bg-green-700 text-white"
-                  : "bg-stone-800 text-amber-100 hover:bg-stone-700"
-                  } px-4 py-2 rounded-lg font-semibold transition-colors whitespace-nowrap flex items-center gap-2`}
-              >
-                <Leaf className="h-4 w-4" />
-                Veg Only
-              </button>
-
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={`${showFilters
-                  ? "bg-amber-600 text-white"
-                  : "bg-stone-800 text-amber-100 hover:bg-stone-700"
-                  } px-4 py-2 rounded-lg font-semibold transition-colors whitespace-nowrap`}
-              >
-                Filters
-                {activeFiltersCount() > 0 && (
-                  <span className="ml-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
-                    {activeFiltersCount()}
-                  </span>
-                )}
-              </button>
-
-              {activeFiltersCount() > 0 && (
-                <button
-                  onClick={clearFilters}
-                  className="bg-stone-800 text-amber-100 hover:bg-stone-700 px-4 py-2 rounded-lg font-semibold transition-colors whitespace-nowrap flex items-center gap-1"
-                >
-                  <X className="h-4 w-4" />
-                  Clear
-                </button>
-              )}
-            </div>
-
-            <div className="flex overflow-x-auto gap-2 pb-3 mb-6">
-              <button
-                onClick={() => setSelectedCategory("all")}
-                className={`${selectedCategory === "all"
-                  ? "bg-amber-600 text-white"
-                  : "bg-stone-800 text-amber-100 hover:bg-stone-700"
-                  } px-5 py-2 rounded-lg font-semibold transition-colors whitespace-nowrap`}
-              >
-                All Items
-              </button>
-              {menuSections.map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => setSelectedCategory(section.name.toLowerCase())}
-                  className={`${selectedCategory === section.name.toLowerCase()
-                    ? "bg-amber-600 text-white"
-                    : "bg-stone-800 text-amber-100 hover:bg-stone-700"
-                    } px-5 py-2 rounded-lg font-semibold transition-colors whitespace-nowrap`}
-                >
-                  {section.name}
-                </button>
-              ))}
-            </div>
+            {/* Removed Messy Filters and Category Lists */}
 
             {filteredMenu.length === 0 ? (
               <div className="text-center py-12 bg-stone-800 rounded-xl border border-stone-700">
@@ -543,6 +555,7 @@ const TemplateDarkCafe = (props: TemplateProps) => {
                           item={item}
                           onAddToCart={onAddToCart}
                           formatPrice={formatPrice}
+                          allowOrdering={tableData?.allowOrdering !== false}
                         />
                       ))}
                     </div>
@@ -552,7 +565,7 @@ const TemplateDarkCafe = (props: TemplateProps) => {
             )}
           </div>
 
-          {cart.length > 0 && (
+          {cart.length > 0 && tableData?.allowOrdering !== false && (
             <div className="absolute bottom-4 left-4 right-4 z-50">
               <button
                 onClick={() => setShowCart(true)}
@@ -735,8 +748,139 @@ const TemplateDarkCafe = (props: TemplateProps) => {
           )}
         </div>
       </div>
-    </div>
 
+      {/* Category Menu Modal */}
+      <AnimatePresence>
+        {showCategoryMenu && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 md:p-0"
+            onClick={() => setShowCategoryMenu(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-stone-900 w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-stone-800 max-h-[80vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-amber-100">Menu</h2>
+                <button onClick={() => setShowCategoryMenu(false)} className="bg-stone-800 p-2 rounded-full text-stone-400 hover:text-amber-100">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setSelectedCategory("all");
+                    setShowCategoryMenu(false);
+                    // Scroll to top
+                    const listContainer = document.querySelector('.overflow-y-auto');
+                    if (listContainer) listContainer.scrollTop = 0;
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-colors ${selectedCategory === "all" ? "bg-amber-600 text-white" : "bg-stone-800 text-amber-100 hover:bg-stone-700"}`}
+                >
+                  All Items
+                </motion.button>
+                {menuSections.map((section) => (
+                  <motion.button
+                    key={section.id}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setSelectedCategory(section.name.toLowerCase());
+                      setShowCategoryMenu(false);
+                      // Scroll to top
+                      const listContainer = document.querySelector('.overflow-y-auto');
+                      if (listContainer) listContainer.scrollTop = 0;
+                    }}
+                    className={`w-full text-left px-4 py-3 rounded-xl font-medium transition-colors ${selectedCategory === section.name.toLowerCase() ? "bg-amber-600 text-white" : "bg-stone-800 text-amber-100 hover:bg-stone-700"}`}
+                  >
+                    {section.name}
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Filter Modal */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 md:p-0"
+            onClick={() => setShowFilters(false)}
+          >
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="bg-stone-900 w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl border border-stone-800"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-amber-100">Filters</h2>
+                <button onClick={() => setShowFilters(false)} className="bg-stone-800 p-2 rounded-full text-stone-400 hover:text-amber-100">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* Dietary Filter */}
+                <div className="bg-stone-800 rounded-xl p-4 border border-stone-700">
+                  <h3 className="font-bold text-amber-100 mb-3">Dietary Preference</h3>
+                  <div className="flex bg-stone-900 rounded-lg p-1 border border-stone-800">
+                    {(['all', 'veg', 'non-veg'] as const).map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => setDietaryFilter(type)}
+                        className={`flex-1 py-2 rounded-md text-sm font-bold capitalize transition-all ${dietaryFilter === type
+                          ? "bg-amber-600 text-white shadow-lg"
+                          : "text-stone-400 hover:text-amber-100"
+                          }`}
+                      >
+                        {type === 'all' ? 'All' : type}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Price Filter */}
+
+
+                <div className="flex gap-3 pt-4 border-t border-stone-800">
+                  <button
+                    onClick={() => {
+                      setDietaryFilter("all");
+                      setPriceFilter("all");
+                    }}
+                    className="flex-1 py-3 text-stone-500 font-bold hover:text-amber-100 transition-colors"
+                  >
+                    Clear All
+                  </button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setShowFilters(false)}
+                    className="flex-[2] bg-amber-600 text-white rounded-xl font-bold py-3 shadow-lg hover:bg-amber-700"
+                  >
+                    Apply Filters
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 
@@ -744,12 +888,14 @@ interface MenuItemCardProps {
   item: MenuItem;
   onAddToCart: (item: MenuItem, selectedAddons: Addon[]) => void;
   formatPrice: (price: number) => string;
+  allowOrdering: boolean;
 }
 
 const MenuItemCard = ({
   item,
   onAddToCart,
   formatPrice,
+  allowOrdering,
 }: MenuItemCardProps) => {
   const [selectedAddons, setSelectedAddons] = useState<Record<number, Addon[]>>(
     {}
@@ -845,7 +991,7 @@ const MenuItemCard = ({
               className="w-full h-full object-cover"
             />
             <div
-              className={`absolute top-3 left-3 w-7 h-7 rounded-lg border-3 flex items-center justify-center ${item.isVeg
+              className={`absolute top-3 left-3 w-6 h-6 rounded-sm border-2 flex items-center justify-center ${item.isVeg
                 ? "bg-white border-green-600"
                 : "bg-white border-red-600"
                 }`}
@@ -864,42 +1010,26 @@ const MenuItemCard = ({
         )}
 
         <div className="p-4">
-          <h3 className="font-bold text-lg mb-1 text-amber-100">{item.name}</h3>
+          <div className="flex justify-between items-start mb-1 gap-2">
+            <h3 className="font-bold text-lg text-amber-100">{item.name}</h3>
+            {!item.image && (
+              <div
+                className={`w-5 h-5 rounded-sm border-2 flex items-center justify-center shrink-0 mt-1 ${item.isVeg ? "border-green-600" : "border-red-600"
+                  }`}
+              >
+                <div
+                  className={`w-2.5 h-2.5 rounded-full ${item.isVeg ? "bg-green-600" : "bg-red-600"
+                    }`}
+                />
+              </div>
+            )}
+          </div>
           <p className="text-sm text-stone-400 mb-4 line-clamp-2">
             {item.description}
           </p>
 
-          <div className="space-y-2">
-            {hasAddonGroups && (
-              <button
-                onClick={() => setShowAddons(!showAddons)}
-                className="w-full bg-stone-700 hover:bg-stone-600 text-amber-100 py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-between"
-              >
-                <span>{showAddons ? "Hide Options" : "Customize"}</span>
-                <div className="flex items-center gap-2">
-                  {getSelectedAddonsCount() > 0 && (
-                    <span className="bg-amber-600 text-white text-xs px-2 py-1 rounded-full">
-                      {getSelectedAddonsCount()}
-                    </span>
-                  )}
-                  <ChevronRight
-                    className={`h-5 w-5 transition-transform ${showAddons ? "rotate-90" : ""
-                      }`}
-                  />
-                </div>
-              </button>
-            )}
-            <button
-              onClick={handleAddToCart}
-              className="w-full bg-gradient-to-r from-amber-600 to-yellow-700 hover:from-amber-700 hover:to-yellow-800 text-white py-3 px-4 rounded-lg font-bold transition-all shadow-lg flex items-center justify-center gap-2"
-            >
-              <Plus className="h-5 w-5" />
-              Add • {formatPrice(getItemTotalWithAddons())}
-            </button>
-          </div>
-
           {showAddons && hasAddonGroups && (
-            <div className="mt-4 space-y-3">
+            <div className="mb-4 space-y-3">
               {item.addonGroups.map((group, groupIndex) => (
                 <div
                   key={groupIndex}
@@ -949,6 +1079,40 @@ const MenuItemCard = ({
               ))}
             </div>
           )}
+
+          <div className="space-y-2">
+            {allowOrdering ? (
+              <button
+                onClick={() => {
+                  if (hasAddonGroups && !showAddons) {
+                    setShowAddons(true);
+                  } else {
+                    handleAddToCart();
+                  }
+                }}
+                className="w-full bg-gradient-to-r from-amber-600 to-yellow-700 hover:from-amber-700 hover:to-yellow-800 text-white py-3 px-4 rounded-lg font-bold transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                {showAddons ? (
+                  <>
+                    <Check className="h-5 w-5" />
+                    Add to Order • {formatPrice(getItemTotalWithAddons())}
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-5 w-5" />
+                    Add • {formatPrice(item.price)}
+                  </>
+                )}
+              </button>
+            ) : hasAddonGroups ? (
+              <button
+                onClick={() => setShowAddons(!showAddons)}
+                className="w-full bg-stone-800 hover:bg-stone-700 text-amber-500 hover:text-amber-400 py-3 px-4 rounded-lg font-bold transition-all shadow-lg flex items-center justify-center gap-2 border border-stone-600"
+              >
+                {showAddons ? "Hide Options" : "View Options"}
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

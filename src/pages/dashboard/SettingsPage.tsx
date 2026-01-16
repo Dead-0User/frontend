@@ -21,7 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CURRENCIES } from "@/constants/currencies";
-import { Palette, Sparkles, Circle, Check, Upload, X, Image as ImageIcon, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Palette, Circle, Check, Upload, X, Image as ImageIcon, Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
 import { API_BASE_URL } from "@/config";
 
 interface Tax {
@@ -77,6 +77,7 @@ const SettingsPage = () => {
     taxes: [] as Tax[],
     fssaiLabel: "FSSAI Number",
     gstLabel: "GST/Tax Number",
+    allowOrdering: true,
   });
   const [restaurantInfo, setRestaurantInfo] = useState({
     restaurantName: "",
@@ -203,7 +204,6 @@ const SettingsPage = () => {
           currency: data.restaurant.currency || "INR",
           googleMapsUrl: data.restaurant.googleMapsUrl || "",
           operationalHours: data.restaurant.operationalHours || "",
-          templateStyle: data.restaurant.templateStyle || "classic",
           logo: data.restaurant.logo || "",
           address: data.restaurant.address || "",
           fssai: data.restaurant.fssai || "",
@@ -269,6 +269,7 @@ const SettingsPage = () => {
     const logoChanged = logoFile !== null || removeLogo;
     const hoursChanged = JSON.stringify(parseOperationalHours(initialData.operationalHours)) !== JSON.stringify(weekHours);
     const licenseChanged = licenseFields.length > 0;
+    // dataChanged covers allowOrdering change since it's in restaurantInfo
     setHasChanges(dataChanged || logoChanged || hoursChanged || licenseChanged);
   }, [restaurantInfo, initialData, logoFile, removeLogo, weekHours, licenseFields]);
 
@@ -288,12 +289,7 @@ const SettingsPage = () => {
     });
   };
 
-  const handleTemplateChange = (templateId: string) => {
-    setRestaurantInfo({
-      ...restaurantInfo,
-      templateStyle: templateId,
-    });
-  };
+
 
   // Tax Management
   const handleAddTax = () => {
@@ -369,7 +365,6 @@ const SettingsPage = () => {
       formData.append('currency', restaurantInfo.currency);
       formData.append('googleMapsUrl', restaurantInfo.googleMapsUrl);
       formData.append('operationalHours', formatOperationalHours(weekHours));
-      formData.append('templateStyle', restaurantInfo.templateStyle);
       formData.append('address', restaurantInfo.address);
       formData.append('fssai', restaurantInfo.fssai);
       formData.append('gstNo', restaurantInfo.gstNo);
@@ -430,36 +425,7 @@ const SettingsPage = () => {
     }
   };
 
-  const templates = [
-    {
-      id: "classic",
-      name: "Classic",
-      description: "Traditional card-based layout with full images",
-      icon: <Palette className="h-6 w-6" />,
-      preview: "Rich visuals, detailed cards, comprehensive filters",
-    },
-    {
-      id: "modern",
-      name: "Modern",
-      description: "Contemporary design with gradients and smooth animations",
-      icon: <Sparkles className="h-6 w-6" />,
-      preview: "Sleek interface, gradient accents, floating elements",
-    },
-    {
-      id: "minimal",
-      name: "Minimal",
-      description: "Clean and simple with focus on content",
-      icon: <Circle className="h-6 w-6" />,
-      preview: "Stripped down, text-focused, maximum clarity",
-    },
-    {
-      id: "TemplateBurgerBooch",
-      name: "Booch",
-      description: "Clean and simple with focus on content",
-      icon: <Circle className="h-6 w-6" />,
-      preview: "Stripped down, text-focused, maximum clarity",
-    },
-  ];
+
 
   if (loading) {
     return (
@@ -533,6 +499,8 @@ const SettingsPage = () => {
               />
             </div>
           </div>
+
+
 
           {/* Logo Upload Section */}
           <div>
@@ -942,72 +910,7 @@ const SettingsPage = () => {
         </CardContent>
       </Card>
 
-      {/* Template Selection Card */}
-      <Card className="card-glass border-0">
-        <CardHeader>
-          <CardTitle>Customer Ordering Page Theme</CardTitle>
-          <CardDescription>
-            Choose how your menu appears to customers
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            {templates.map((template) => (
-              <button
-                key={template.id}
-                onClick={() => handleTemplateChange(template.id)}
-                className={`relative p-4 border-2 rounded-lg text-left transition-all hover:shadow-md ${restaurantInfo.templateStyle === template.id
-                  ? "border-primary bg-primary/5 shadow-md"
-                  : "border-border hover:border-primary/50"
-                  }`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div
-                    className={`p-2 rounded-lg ${restaurantInfo.templateStyle === template.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary"
-                      }`}
-                  >
-                    {template.icon}
-                  </div>
-                  {restaurantInfo.templateStyle === template.id && (
-                    <Badge className="bg-primary">Selected</Badge>
-                  )}
-                </div>
 
-                <h3 className="font-bold text-lg mb-1">{template.name}</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {template.description}
-                </p>
-                <p className="text-xs text-muted-foreground italic">
-                  {template.preview}
-                </p>
-              </button>
-            ))}
-          </div>
-
-          {/* View Theme Button */}
-          {firstTableId ? (
-            <a
-              href={`/order/${firstTableId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block"
-            >
-              <HeroButton className="w-full" size="lg">
-                <Palette className="h-4 w-4 mr-2" />
-                View Your Theme
-              </HeroButton>
-            </a>
-          ) : (
-            <div className="bg-muted/50 border border-dashed rounded-lg p-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                Create a table first to preview your theme
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };

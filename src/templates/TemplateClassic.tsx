@@ -6,6 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from "@/components/ui/dropdown-menu";
+import {
   Plus,
   Minus,
   ShoppingCart,
@@ -21,7 +29,8 @@ import {
   Leaf,
   DollarSign,
   SlidersHorizontal,
-  Bell
+  Bell,
+  Filter
 } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { API_BASE_URL } from "@/config";
@@ -80,6 +89,7 @@ interface TableData {
   tableName: string;
   seats: number;
   restaurantId: string;
+  allowOrdering?: boolean;
 }
 
 interface TemplateProps {
@@ -101,6 +111,7 @@ interface TemplateProps {
   waiterCalled: boolean;
   selectedCategory: string;
   showVegOnly: boolean;
+  dietaryFilter: 'all' | 'veg' | 'non-veg';
   searchQuery: string;
   priceFilter: string;
   showFilters: boolean;
@@ -116,6 +127,7 @@ interface TemplateProps {
   setOrderStatus: (status: string) => void;
   setSelectedCategory: (category: string) => void;
   setShowVegOnly: (show: boolean) => void;
+  setDietaryFilter: (filter: 'all' | 'veg' | 'non-veg') => void;
   setSearchQuery: (query: string) => void;
   setPriceFilter: (filter: string) => void;
   setShowFilters: (show: boolean) => void;
@@ -143,7 +155,8 @@ const TemplateClassic = (props: TemplateProps) => {
     isCallingWaiter,
     waiterCalled,
     selectedCategory,
-    showVegOnly,
+    // showVegOnly, // Deprecated in this template
+    dietaryFilter,
     searchQuery,
     priceFilter,
     showFilters,
@@ -158,7 +171,8 @@ const TemplateClassic = (props: TemplateProps) => {
     setOrderId,
     setOrderStatus,
     setSelectedCategory,
-    setShowVegOnly,
+    // setShowVegOnly, // Deprecated in this template
+    setDietaryFilter,
     setSearchQuery,
     setPriceFilter,
     setShowFilters,
@@ -208,18 +222,22 @@ const TemplateClassic = (props: TemplateProps) => {
       ...section,
       items: section.items.filter(item => {
         const matchesCategory = selectedCategory === "all" || section.name.toLowerCase().includes(selectedCategory.toLowerCase());
-        const matchesVeg = !showVegOnly || item.isVeg;
+
+        let matchesDietary = true;
+        if (dietaryFilter === 'veg') matchesDietary = item.isVeg;
+        if (dietaryFilter === 'non-veg') matchesDietary = !item.isVeg;
+
         const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.description.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesPrice = applyPriceFilter(item.price);
-        return matchesCategory && matchesVeg && matchesSearch && matchesPrice;
+        return matchesCategory && matchesDietary && matchesSearch && matchesPrice;
       })
     })).filter(section => section.items.length > 0);
   };
 
   const clearFilters = () => {
     setSelectedCategory("all");
-    setShowVegOnly(false);
+    setDietaryFilter("all");
     setPriceFilter("all");
     setSearchQuery("");
   };
@@ -227,7 +245,8 @@ const TemplateClassic = (props: TemplateProps) => {
   const activeFiltersCount = (): number => {
     let count = 0;
     if (selectedCategory !== "all") count++;
-    if (showVegOnly) count++;
+    if (selectedCategory !== "all") count++;
+    if (dietaryFilter !== "all") count++;
     if (priceFilter !== "all") count++;
     if (searchQuery) count++;
     return count;
@@ -361,7 +380,7 @@ const TemplateClassic = (props: TemplateProps) => {
                     <Utensils className="h-5 w-5 text-primary-foreground" />
                   </div>
                   <div>
-                    <h1 className="text-lg font-bold">{restaurantData?.name}</h1>
+
                     <p className="text-sm text-muted-foreground">{tableData?.tableName}</p>
                   </div>
                 </div>
@@ -421,90 +440,53 @@ const TemplateClassic = (props: TemplateProps) => {
               </Card>
             )}
 
-            {/* Search */}
-            <div className="mb-3">
-              <div className="relative">
+            {/* Search and Filter */}
+            <div className="flex gap-2 mb-3">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search menu..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 w-full"
                 />
               </div>
+
+              {/* Filter Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant={dietaryFilter !== 'all' ? "default" : "outline"}
+                    size="icon"
+                    className="h-10 w-10 flex-shrink-0"
+                  >
+                    <Filter className="h-4 w-4" />
+                    {dietaryFilter !== 'all' && (
+                      <span className="absolute top-[-4px] right-[-4px] h-3 w-3 bg-red-500 rounded-full flex items-center justify-center text-[8px] text-white border border-background">
+                        1
+                      </span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuRadioGroup value={dietaryFilter} onValueChange={(value) => setDietaryFilter(value as 'all' | 'veg' | 'non-veg')}>
+                    <DropdownMenuRadioItem value="all">
+                      All Items
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="veg">
+                      Veg
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="non-veg">
+                      Non-Veg
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
 
-            {/* Quick Filters */}
-            <div className="flex gap-2 mb-3 overflow-x-auto">
-              <Button
-                onClick={() => setShowVegOnly(!showVegOnly)}
-                variant={showVegOnly ? "success" : "outline"}
-                size="sm"
-              >
-                <Leaf className="h-4 w-4 mr-1" />
-                Veg Only
-              </Button>
 
-              <Button
-                onClick={() => setShowFilters(!showFilters)}
-                variant={showFilters ? "default" : "outline"}
-                size="sm"
-              >
-                <SlidersHorizontal className="h-4 w-4 mr-1" />
-                Filters
-                {activeFiltersCount() > 0 && (
-                  <Badge className="ml-1 h-4 w-4 p-0 text-xs">
-                    {activeFiltersCount()}
-                  </Badge>
-                )}
-              </Button>
 
-              {activeFiltersCount() > 0 && (
-                <Button onClick={clearFilters} variant="ghost" size="sm">
-                  <X className="h-4 w-4 mr-1" />
-                  Clear
-                </Button>
-              )}
-            </div>
 
-            {/* Filters Panel */}
-            {showFilters && (
-              <Card className="mb-4">
-                <CardContent className="p-4">
-                  <label className="text-sm font-semibold mb-2 block">Price Range</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant={priceFilter === "all" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPriceFilter("all")}
-                    >
-                      All Prices
-                    </Button>
-                    <Button
-                      variant={priceFilter === "under10" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPriceFilter("under10")}
-                    >
-                      Under {currency.symbol}10
-                    </Button>
-                    <Button
-                      variant={priceFilter === "10to20" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPriceFilter("10to20")}
-                    >
-                      {currency.symbol}10 - {currency.symbol}20
-                    </Button>
-                    <Button
-                      variant={priceFilter === "over20" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setPriceFilter("over20")}
-                    >
-                      Over {currency.symbol}20
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             {/* Category Tabs */}
             <div className="flex overflow-x-auto gap-2 pb-3 mb-6">
@@ -554,6 +536,7 @@ const TemplateClassic = (props: TemplateProps) => {
                           item={item}
                           onAddToCart={onAddToCart}
                           formatPrice={formatPrice}
+                          allowOrdering={tableData?.allowOrdering !== false}
                         />
                       ))}
                     </div>
@@ -564,7 +547,7 @@ const TemplateClassic = (props: TemplateProps) => {
           </div>
 
           {/* Floating Cart Button */}
-          {cart.length > 0 && (
+          {cart.length > 0 && tableData?.allowOrdering !== false && (
             <div className="absolute bottom-4 left-4 right-4 z-50">
               <Button
                 onClick={() => setShowCart(true)}
@@ -727,9 +710,10 @@ interface MenuItemCardProps {
   item: MenuItem;
   onAddToCart: (item: MenuItem, selectedAddons: Addon[]) => void;
   formatPrice: (price: number) => string;
+  allowOrdering: boolean;
 }
 
-const MenuItemCard = ({ item, onAddToCart, formatPrice }: MenuItemCardProps) => {
+const MenuItemCard = ({ item, onAddToCart, formatPrice, allowOrdering }: MenuItemCardProps) => {
   const [selectedAddons, setSelectedAddons] = useState<Record<number, Addon[]>>({});
   const [showAddons, setShowAddons] = useState<boolean>(false);
 
@@ -758,23 +742,13 @@ const MenuItemCard = ({ item, onAddToCart, formatPrice }: MenuItemCardProps) => 
         }
       } else {
         // Single select logic
-        const currentQty = currentGroupAddons.filter(a => a.name === addon.name).length;
-        const maxQty = addon.maxQuantity || 1;
-
-        if (currentQty > 0 && currentQty < maxQty) {
-          // Increment
-          return {
-            ...prev,
-            [groupIndex]: [...currentGroupAddons, addon]
-          };
-        } else if (currentQty >= maxQty) {
-          // Toggle off if at max
+        const isSelected = currentGroupAddons.some(a => a.name === addon.name);
+        if (isSelected) {
           return {
             ...prev,
             [groupIndex]: []
           };
         } else {
-          // Replace with new selection
           return {
             ...prev,
             [groupIndex]: [addon]
@@ -817,10 +791,9 @@ const MenuItemCard = ({ item, onAddToCart, formatPrice }: MenuItemCardProps) => 
                 alt={item.name}
                 className="w-full h-full object-cover"
               />
-              <div className={`absolute top-2 left-2 w-6 h-6 rounded-lg border-3 flex items-center justify-center ${item.isVeg ? 'bg-white border-green-600' : 'bg-white border-red-600'
+              <div className={`absolute top-2 left-2 w-6 h-6 border-2 flex items-center justify-center ${item.isVeg ? 'bg-white border-green-600' : 'bg-white border-red-600'
                 }`}>
-                <div className={`w-2.5 h-2.5 rounded-full ${item.isVeg ? 'bg-green-600' : 'bg-red-600'
-                  }`} />
+                <div className={`w-3 h-3 ${item.isVeg ? 'bg-green-600 rounded-full' : 'bg-red-600'}`} />
               </div>
               <div className="absolute top-2 right-2 bg-primary/90 px-2 py-1 rounded-lg">
                 <p className="text-sm font-bold text-primary-foreground">{formatPrice(item.price)}</p>
@@ -832,34 +805,8 @@ const MenuItemCard = ({ item, onAddToCart, formatPrice }: MenuItemCardProps) => 
             <h3 className="font-bold mb-1">{item.name}</h3>
             <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{item.description}</p>
 
-            <div className="space-y-2">
-              {hasAddonGroups && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowAddons(!showAddons)}
-                  className="w-full"
-                >
-                  {showAddons ? 'Hide Options' : 'Customize'}
-                  {getSelectedAddonsCount() > 0 && (
-                    <Badge className="ml-2 h-5 w-5 p-0">
-                      {getSelectedAddonsCount()}
-                    </Badge>
-                  )}
-                  <ChevronRight className={`h-4 w-4 ml-1 ${showAddons ? 'rotate-90' : ''}`} />
-                </Button>
-              )}
-              <Button
-                onClick={handleAddToCart}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add • {formatPrice(getItemTotalWithAddons())}
-              </Button>
-            </div>
-
             {showAddons && hasAddonGroups && (
-              <div className="mt-3 space-y-3">
+              <div className="mb-3 space-y-3">
                 {item.addonGroups.map((group, groupIndex) => (
                   <div key={groupIndex} className="p-3 bg-secondary/50 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
@@ -868,44 +815,76 @@ const MenuItemCard = ({ item, onAddToCart, formatPrice }: MenuItemCardProps) => 
                         {group.multiSelect ? 'Multi-select' : 'Choose one'}
                       </Badge>
                     </div>
-
-                    <div className="space-y-2">
+                    <div className="grid grid-cols-1 gap-2">
                       {group.items.map((addon, addonIndex) => (
-                        <label
+                        <div
                           key={addonIndex}
-                          className="flex items-center justify-between cursor-pointer hover:bg-card p-2 rounded-lg"
+                          className="flex items-center justify-between p-2 bg-background rounded border cursor-pointer hover:border-primary transition-colors"
+                          onClick={() => toggleAddon(groupIndex, addon)}
                         >
                           <div className="flex items-center gap-2">
-                            <input
-                              type={group.multiSelect ? "checkbox" : "radio"}
-                              name={`addon-group-${groupIndex}`}
-                              checked={isAddonSelected(groupIndex, addon)}
-                              onChange={() => toggleAddon(groupIndex, addon)}
-                              className="w-4 h-4"
-                            />
-                            <span className="text-sm">
-                              {addon.name}
-                              {(selectedAddons[groupIndex]?.filter(a => a.name === addon.name).length || 0) > 1 && (
-                                <span className="ml-2 bg-primary/10 text-primary text-xs font-bold px-1.5 py-0.5 rounded">
-                                  x{selectedAddons[groupIndex].filter(a => a.name === addon.name).length}
-                                </span>
-                              )}
-                            </span>
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${isAddonSelected(groupIndex, addon) ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground'
+                              }`}>
+                              {isAddonSelected(groupIndex, addon) && <Check className="h-3 w-3" />}
+                            </div>
+                            <span className="text-sm font-medium">{addon.name}</span>
                           </div>
-                          <span className="text-sm font-bold text-primary">
-                            {addon.price > 0 ? `+${formatPrice(addon.price)}` : 'Free'}
-                          </span>
-                        </label>
+                          {addon.price > 0 && (
+                            <span className="text-xs text-muted-foreground">+{formatPrice(addon.price)}</span>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>
                 ))}
               </div>
             )}
+
+            {allowOrdering ? (
+              <div className="space-y-2">
+                <Button
+                  onClick={() => {
+                    if (hasAddonGroups && !showAddons) {
+                      setShowAddons(true);
+                    } else {
+                      handleAddToCart();
+                    }
+                  }}
+                  className="w-full"
+                  variant="default"
+                >
+                  {/* <Plus className="h-4 w-4 mr-2" /> */}
+                  {/* User asked for + while increasing quantity. Let's keep Plus icon for base state, maybe Check for confirm? */}
+                  {showAddons ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Add to Order • {formatPrice(getItemTotalWithAddons())}
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add • {formatPrice(item.price)}
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : hasAddonGroups ? (
+              <div className="space-y-2">
+                <Button
+                  onClick={() => setShowAddons(!showAddons)}
+                  className="w-full"
+                  variant="outline"
+                >
+                  {showAddons ? "Hide Options" : "View Options"}
+                </Button>
+              </div>
+            ) : null}
+
+
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </CardContent >
+    </Card >
   );
 };
 

@@ -21,7 +21,10 @@ import {
   Loader2,
   FileText,
   X,
+  Bell,
+  Plus,
 } from "lucide-react";
+import { NewOrderDialog } from '@/components/NewOrderDialog';
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
 
@@ -84,6 +87,9 @@ interface Table {
   activeOrderId?: string;
   guests?: number;
   activeOrder?: Order;
+  isCallingWaiter?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const STORAGE_KEY_KOT = "kot_printed_items";
@@ -99,6 +105,7 @@ const WaiterPage = () => {
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [showNewOrderDialog, setShowNewOrderDialog] = useState(false);
 
   // KOT States - Track printed items and glow state for each order
   const [kotPrintedItems, setKotPrintedItems] = useState<
@@ -348,6 +355,9 @@ const WaiterPage = () => {
           activeOrderId,
           activeOrder,
           guests: table.seats,
+          isCallingWaiter: (table as any).isCallingWaiter || false,
+          createdAt: table.createdAt,
+          updatedAt: table.updatedAt
         };
       });
 
@@ -362,7 +372,40 @@ const WaiterPage = () => {
         return newKotNeedsGlow;
       });
 
-      setTables(tablesWithStatus);
+      setTables(tablesWithStatus.sort((a, b) => {
+        // Priority Score Calculation
+        // Waiter Called: 100
+        // Order Ready: 50
+        // Order Pending: 20
+        // Occupied: 0
+        // Available: -100
+
+        const getScore = (table: Table) => {
+          if (table.isCallingWaiter) return 100;
+          if (table.orderStatus === 'ready') return 50;
+          if (table.orderStatus === 'pending') return 20;
+          if (table.status === 'occupied') return 0;
+          return -100;
+        };
+
+        const scoreA = getScore(a);
+        const scoreB = getScore(b);
+
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA; // Bio-Sort: Higher score first
+        }
+
+        // Tie-breaker: Recency (Newest Activity First)
+        // For Waiter Called: updateAt of table
+        // For Order: updatedAt of order
+        const getTime = (table: Table) => {
+          if (table.isCallingWaiter) return new Date(table.updatedAt).getTime();
+          if (table.activeOrder) return new Date(table.activeOrder.updatedAt).getTime();
+          return new Date(table.updatedAt).getTime();
+        };
+
+        return getTime(b) - getTime(a);
+      }));
     } catch (error) {
       console.error("Error loading data:", error);
       toast({
@@ -637,6 +680,8 @@ const WaiterPage = () => {
     switch (status) {
       case "pending":
         return "bg-orange-500/10 text-orange-700 border-orange-200";
+      case "accepted":
+        return "bg-purple-500/10 text-purple-700 border-purple-200";
       case "preparing":
         return "bg-blue-500/10 text-blue-700 border-blue-200";
       case "ready":
@@ -652,6 +697,8 @@ const WaiterPage = () => {
     switch (status) {
       case "pending":
         return "bg-orange-500/10 text-orange-600 border-orange-500/30";
+      case "accepted":
+        return "bg-purple-500/10 text-purple-600 border-purple-500/30";
       case "preparing":
         return "bg-blue-500/10 text-blue-600 border-blue-500/30";
       case "ready":
@@ -682,7 +729,7 @@ const WaiterPage = () => {
           ...getAuthHeader(),
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ itemIds: pendingItems, status: "preparing" }),
+        body: JSON.stringify({ itemIds: pendingItems, status: "accepted" }),
       });
 
       const data = await response.json();
@@ -690,7 +737,7 @@ const WaiterPage = () => {
       if (data.success) {
         toast({
           title: "Order Accepted",
-          description: `Order for Table ${order.tableNumber} is now preparing`,
+          description: `Order for Table ${order.tableNumber} is now accepted`,
         });
         await loadData();
         setShowOrderDialog(false);
@@ -702,6 +749,52 @@ const WaiterPage = () => {
       toast({
         title: "Error",
         description: error.message || "Failed to accept order",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingOrder(null);
+    }
+  };
+
+  const handleStartPreparing = async (order: Order) => {
+    if (!order) return;
+
+    setUpdatingOrder(order.id);
+    try {
+      const acceptedItems = order.itemsDetailed
+        .filter(i => !i.isRemoved && (i.status === 'accepted' || i.status === 'pending'))
+        .map(i => i._id);
+
+      if (acceptedItems.length === 0) {
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/orders/${order.id}/items/bulk-status`, {
+        method: "PATCH",
+        headers: {
+          ...getAuthHeader(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ itemIds: acceptedItems, status: "preparing" }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Preparing Order",
+          description: `Order for Table ${order.tableNumber} is now preparing`,
+        });
+        await loadData();
+        setShowOrderDialog(false);
+      } else {
+        throw new Error(data.message || "Failed to start preparing");
+      }
+    } catch (error: any) {
+      console.error("Error starting preparation:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start preparation",
         variant: "destructive",
       });
     } finally {
@@ -744,6 +837,36 @@ const WaiterPage = () => {
       });
     } finally {
       setUpdatingOrder(null);
+    }
+  };
+
+  const handleDismissWaiter = async (tableId: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders/table/${tableId}/dismiss-waiter`, {
+        method: "POST",
+        headers: {
+          ...getAuthHeader(),
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        toast({
+          title: "Request Dismissed",
+          description: "Waiter call has been dismissed",
+        });
+        loadData();
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      console.error("Error dismissing waiter:", error);
+      toast({
+        title: "Error",
+        description: "Failed to dismiss request",
+        variant: "destructive",
+      });
     }
   };
 
@@ -799,6 +922,15 @@ const WaiterPage = () => {
                 <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                 <span className="sr-only">Toggle theme</span>
+              </Button>
+
+              <Button
+                className="gap-2"
+                size="sm"
+                onClick={() => setShowNewOrderDialog(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Place Order
               </Button>
 
               <Button
@@ -905,7 +1037,7 @@ const WaiterPage = () => {
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <CardTitle className="text-lg">
-                          Table {table.tableName}
+                          {table.tableName}
                         </CardTitle>
                         <Badge
                           className={getStatusColor(table.status)}
@@ -914,6 +1046,25 @@ const WaiterPage = () => {
                           {table.status}
                         </Badge>
                       </div>
+                      {table.isCallingWaiter && (
+                        <div className="mt-2 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md p-2 flex items-center justify-between animate-pulse">
+                          <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-medium">
+                            <Bell className="h-4 w-4" />
+                            <span>Waiter Called!</span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-7 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDismissWaiter(table._id);
+                            }}
+                          >
+                            Dismiss
+                          </Button>
+                        </div>
+                      )}
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {table.status === "occupied" && order && (
@@ -1108,20 +1259,36 @@ const WaiterPage = () => {
 
               {/* Actions */}
               <div className="flex gap-2 pt-4 flex-wrap">
-                {selectedOrder.status === 'pending' && (
+                {(selectedOrder.status === 'pending' || selectedOrder.status === 'accepted') && (
                   <>
-                    <Button
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => handleAcceptOrder(selectedOrder)}
-                      disabled={updatingOrder === selectedOrder.id}
-                    >
-                      {updatingOrder === selectedOrder.id ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                      )}
-                      Accept Order
-                    </Button>
+                    {selectedOrder.status === 'pending' && (
+                      <Button
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => handleAcceptOrder(selectedOrder)}
+                        disabled={updatingOrder === selectedOrder.id}
+                      >
+                        {updatingOrder === selectedOrder.id ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                        )}
+                        Accept Order
+                      </Button>
+                    )}
+                    {selectedOrder.status === 'accepted' && (
+                      <Button
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => handleStartPreparing(selectedOrder)}
+                        disabled={updatingOrder === selectedOrder.id}
+                      >
+                        {updatingOrder === selectedOrder.id ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <ShoppingBag className="h-4 w-4 mr-2" />
+                        )}
+                        Start Preparing
+                      </Button>
+                    )}
                     <Button
                       variant="destructive"
                       className="flex-1"
@@ -1189,6 +1356,12 @@ const WaiterPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <NewOrderDialog
+        open={showNewOrderDialog}
+        onOpenChange={setShowNewOrderDialog}
+        onSuccess={loadData}
+      />
     </div>
   );
 };

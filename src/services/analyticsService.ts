@@ -106,6 +106,71 @@ const getAuthHeaders = (): HeadersInit => {
   };
 };
 
+// Helper to handle token expiration and redirect to login
+const handleAuthError = () => {
+  if (typeof window === "undefined") return;
+
+  // Clear all auth tokens
+  localStorage.removeItem("token");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("staffToken");
+  localStorage.removeItem("staffData");
+
+  // Redirect to appropriate login page
+  const isStaffPage = window.location.pathname.includes("/staff");
+  if (isStaffPage) {
+    window.location.href = "/staff/login";
+  } else {
+    window.location.href = "/login";
+  }
+};
+
+// Retry logic with exponential backoff
+const fetchWithRetry = async (
+  url: string,
+  options: RequestInit,
+  maxRetries: number = 2
+): Promise<Response> => {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+
+      // Handle authentication errors
+      if (response.status === 401 || response.status === 403) {
+        handleAuthError();
+        throw new Error("Authentication expired. Please log in again.");
+      }
+
+      return response;
+    } catch (error) {
+      lastError = error as Error;
+
+      // Don't retry on auth errors
+      if (lastError.message.includes("Authentication expired")) {
+        throw lastError;
+      }
+
+      // If this is the last attempt, throw the error
+      if (attempt === maxRetries) {
+        break;
+      }
+
+      // Wait before retrying (exponential backoff: 500ms, 1000ms, 2000ms)
+      const delay = Math.min(1000 * Math.pow(2, attempt), 3000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+
+      console.log(`Retrying request (attempt ${attempt + 2}/${maxRetries + 1})...`);
+    }
+  }
+
+  // If we get here, all retries failed
+  throw new Error(
+    lastError?.message || "Network error. Please check your connection and try again."
+  );
+};
+
 // ============================================================================
 // IMPROVED PERCENTAGE CALCULATION WITH PROPER EDGE CASE HANDLING
 // ============================================================================
@@ -173,8 +238,8 @@ export const getDashboardAnalytics = async (
       startDate.setHours(0, 0, 0, 0);
     }
 
-    // Fetch current period data
-    const response = await fetch(
+    // Fetch current period data with retry logic
+    const response = await fetchWithRetry(
       `${API_BASE_URL}/orders/restaurant?limit=1000&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
       { headers }
     );
@@ -197,7 +262,7 @@ export const getDashboardAnalytics = async (
     const periodLength = endDate.getTime() - startDate.getTime();
     prevStartDate.setTime(prevStartDate.getTime() - periodLength);
 
-    const prevResponse = await fetch(
+    const prevResponse = await fetchWithRetry(
       `${API_BASE_URL}/orders/restaurant?limit=1000&startDate=${prevStartDate.toISOString()}&endDate=${prevEndDate.toISOString()}`,
       { headers }
     );
@@ -565,7 +630,7 @@ export const getOrdersOverTime = async (period: string = "week") => {
       startDate.setHours(0, 0, 0, 0);
     }
 
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `${API_BASE_URL}/orders/restaurant?limit=1000&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`,
       { headers }
     );
@@ -703,7 +768,7 @@ export const getPopularHours = async () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `${API_BASE_URL}/orders/restaurant?limit=1000&startDate=${today.toISOString()}`,
       { headers }
     );
@@ -780,7 +845,7 @@ export const getRecentActivity = async (limit: number = 10) => {
   try {
     const headers = getAuthHeaders();
 
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `${API_BASE_URL}/orders/restaurant?limit=${limit}`,
       { headers }
     );

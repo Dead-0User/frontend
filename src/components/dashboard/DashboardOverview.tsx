@@ -118,6 +118,24 @@ export const DashboardOverview = ({ basePath = "/dashboard" }: { basePath?: stri
     );
   }
 
+  const handleClearDataAndRetry = () => {
+    // Clear any potentially corrupted cached data
+    try {
+      // Clear service worker cache if available
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+      }
+    } catch (err) {
+      console.error("Error clearing cache:", err);
+    }
+
+    // Reset error state and retry
+    setError(null);
+    fetchAnalytics();
+  };
+
   if (error && !analytics) {
     return (
       <div className="p-4 lg:p-6">
@@ -132,17 +150,33 @@ export const DashboardOverview = ({ basePath = "/dashboard" }: { basePath?: stri
               </h3>
               <p className="text-muted-foreground mb-6">{error}</p>
               <div className="space-y-2 text-sm text-muted-foreground mb-6">
-                <p>Possible issues:</p>
-                <ul className="list-disc list-inside text-left">
-                  <li>API endpoint not available</li>
-                  <li>Authentication token expired</li>
-                  <li>Network connectivity issue</li>
+                <p className="font-medium">Possible solutions:</p>
+                <ul className="list-disc list-inside text-left space-y-1">
+                  <li>Check your internet connection</li>
+                  <li>Try clearing your browser data</li>
+                  <li>Log out and log back in</li>
                 </ul>
               </div>
-              <Button onClick={fetchAnalytics} className="gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Try Again
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button onClick={fetchAnalytics} className="gap-2 w-full">
+                  <RefreshCw className="h-4 w-4" />
+                  Try Again
+                </Button>
+                <Button
+                  onClick={handleClearDataAndRetry}
+                  variant="outline"
+                  className="gap-2 w-full"
+                >
+                  Clear Data & Retry
+                </Button>
+                <Button
+                  onClick={() => setError(null)}
+                  variant="ghost"
+                  className="gap-2 w-full text-muted-foreground"
+                >
+                  Dismiss
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

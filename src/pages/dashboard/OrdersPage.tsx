@@ -10,7 +10,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} 
+from "@/components/ui/dialog";
 import {
   Clock,
   CheckCircle,
@@ -38,20 +39,23 @@ import {
   Download,
   Printer,
   FileText,
-} from "lucide-react";
+}
+from "lucide-react";
 import { Lock } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+}
+from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+}
+from "@/components/ui/select";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/components/ui/use-toast";
 import OrderChangeSummary from "@/components/src/OrderChangeSummary";
@@ -82,7 +86,6 @@ interface ItemDetailed {
   status?: "pending" | "preparing" | "ready" | "served" | "paid" | "cancelled";
   ids?: string[]; // Aggregated IDs for grouped items
 }
-
 interface Order {
   id: string;
   tableNumber: string;

@@ -374,16 +374,17 @@ const TablesPage = () => {
                 Are you sure you want to delete <strong>{deleteConfirm.tableName}</strong>? All associated QR codes will be invalidated.
               </p>
             </div>
-            <div className="p-6 border-t border-border flex justify-end gap-2">
-              <GhostButton onClick={() => setDeleteConfirm(null)}>
+            <div className="p-4 sm:p-6 border-t border-border flex flex-col sm:flex-row justify-end gap-2">
+              <GhostButton onClick={() => setDeleteConfirm(null)} className="w-full sm:w-auto">
                 Cancel
               </GhostButton>
               <button
                 onClick={() => handleDeleteTable(deleteConfirm.tableId)}
-                className="inline-flex items-center justify-center h-10 px-4 rounded-md text-sm font-medium transition-colors bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                className="w-full sm:w-auto inline-flex items-center justify-center h-10 px-4 rounded-md text-sm font-medium transition-colors bg-red-600 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
               >
                 <Trash2 className="h-4 w-4 mr-2 text-white" />
-                Delete Table
+                <span className="hidden sm:inline">Delete Table</span>
+                <span className="sm:hidden">Delete</span>
               </button>
             </div>
           </div>
@@ -433,14 +434,17 @@ const TablesPage = () => {
                 />
               </div>
             </div>
-            <div className="p-6 border-t border-border flex justify-end gap-2">
-              <GhostButton onClick={() => {
-                setShowCreateModal(false);
-                setCreateForm({ tableName: "", seats: 4, allowOrdering: true });
-              }}>
+            <div className="p-4 sm:p-6 border-t border-border flex flex-col sm:flex-row justify-end gap-2">
+              <GhostButton
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setCreateForm({ tableName: "", seats: 4, allowOrdering: true });
+                }}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </GhostButton>
-              <HeroButton onClick={handleCreateTable}>
+              <HeroButton onClick={handleCreateTable} className="w-full sm:w-auto">
                 <Check className="h-4 w-4 mr-2" />
                 Create Table
               </HeroButton>
@@ -451,64 +455,67 @@ const TablesPage = () => {
 
       <div className="p-4 md:p-6 space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground">Table QR Codes</h2>
-            <p className="text-muted-foreground mt-1">Manage your restaurant tables and QR codes</p>
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">Table QR Codes</h2>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage your restaurant tables and QR codes</p>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
             <GlassButton
               onClick={handleQuickCreate}
               disabled={isQuickCreating}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               {isQuickCreating ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
               ) : (
                 <Zap className="h-4 w-4" />
               )}
-              Quick Create
+              <span className="hidden xs:inline">Quick Create</span>
+              <span className="xs:hidden">Quick</span>
             </GlassButton>
-            <HeroButton onClick={() => setShowCreateModal(true)} className="flex-1 sm:flex-none justify-center">
+            <HeroButton onClick={() => setShowCreateModal(true)} className="flex-1 sm:flex-none justify-center text-sm sm:text-base">
               <Plus className="h-4 w-4 mr-2" />
-              Create Table
+              <span className="hidden xs:inline">Create Table</span>
+              <span className="xs:hidden">Create</span>
             </HeroButton>
           </div>
         </div>
 
         {/* Tables Grid */}
         <Card className="card-glass border-0 shadow-lg">
-          <CardHeader className="border-b border-border/50">
+          <CardHeader className="border-b border-border/50 p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">Active Tables</CardTitle>
-              <Badge variant="secondary" className="text-sm">
+              <CardTitle className="text-lg sm:text-xl">Active Tables</CardTitle>
+              <Badge variant="secondary" className="text-xs sm:text-sm">
                 {tables.length} {tables.length === 1 ? 'table' : 'tables'}
               </Badge>
             </div>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-4 sm:p-6">
             {tables.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
-                  <QrCode className="h-10 w-10 text-primary" />
+              <div className="text-center py-12 sm:py-16 px-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-primary/10 mb-4">
+                  <QrCode className="h-8 w-8 sm:h-10 sm:w-10 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-2">No tables yet</h3>
-                <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">No tables yet</h3>
+                <p className="text-sm sm:text-base text-muted-foreground mb-6 max-w-sm mx-auto">
                   Get started by creating your first table to generate QR codes for your restaurant
                 </p>
-                <div className="flex gap-2 justify-center">
-                  <GlassButton onClick={handleQuickCreate} disabled={isQuickCreating}>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center max-w-xs mx-auto">
+                  <GlassButton onClick={handleQuickCreate} disabled={isQuickCreating} className="w-full sm:w-auto">
                     <Zap className="h-4 w-4 mr-2" />
                     Quick Create
                   </GlassButton>
-                  <HeroButton onClick={() => setShowCreateModal(true)}>
+                  <HeroButton onClick={() => setShowCreateModal(true)} className="w-full sm:w-auto">
                     <Plus className="h-4 w-4 mr-2" />
-                    Create Your First Table
+                    <span className="hidden sm:inline">Create Your First Table</span>
+                    <span className="sm:hidden">Create Table</span>
                   </HeroButton>
                 </div>
               </div>
             ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                 {tables.map((table) => (
                   <Card
                     key={table._id}
@@ -517,22 +524,22 @@ const TablesPage = () => {
                       : ''
                       }`}
                   >
-                    <CardContent className="p-6 text-center space-y-4">
+                    <CardContent className="p-4 sm:p-6 text-center space-y-3 sm:space-y-4">
                       {/* Active Order Badge */}
                       {table.hasActiveOrders && (
                         <div className="flex justify-center">
-                          <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white">
+                          <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white text-xs sm:text-sm">
                             Active Orders
                           </Badge>
                         </div>
                       )}
 
                       {/* QR Code */}
-                      <div className="w-36 h-36 mx-auto bg-white rounded-xl flex items-center justify-center border-2 border-border p-3 shadow-sm">
+                      <div className="w-32 h-32 sm:w-36 sm:h-36 mx-auto bg-white rounded-xl flex items-center justify-center border-2 border-border p-2 sm:p-3 shadow-sm">
                         <QRCodeCanvas
                           id={`qr-${table._id}`}
                           value={table.qrCodeUrl}
-                          size={130}
+                          size={120}
                           level="H"
                           includeMargin={false}
                         />
@@ -572,16 +579,16 @@ const TablesPage = () => {
                         </div>
                       ) : (
                         <div>
-                          <h4 className="font-semibold text-lg text-foreground">{table.tableName}</h4>
-                          <Badge variant="outline" className="mt-1">
+                          <h4 className="font-semibold text-base sm:text-lg text-foreground">{table.tableName}</h4>
+                          <Badge variant="outline" className="mt-1 text-xs sm:text-sm">
                             {table.seats} {table.seats === 1 ? 'seat' : 'seats'}
                           </Badge>
-                          <p className="text-xs text-muted-foreground mt-2 break-all px-2">
+                          <p className="text-xs text-muted-foreground mt-2 break-all px-1 sm:px-2">
                             {table.qrCodeUrl}
                           </p>
                           {table.allowOrdering === false && (
                             <div className="mt-3 flex justify-center">
-                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                              <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-xs">
                                 <Eye className="w-3 h-3 mr-1" />
                                 View Only
                               </Badge>
@@ -594,23 +601,25 @@ const TablesPage = () => {
                         <div className="flex gap-2">
                           <GlassButton
                             size="sm"
-                            className="flex-1"
+                            className="flex-1 text-xs sm:text-sm"
                             onClick={() => handleDownloadQR(table._id, table.tableName)}
                           >
-                            <Download className="h-4 w-4 mr-1" />
-                            Download
+                            <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                            <span className="hidden sm:inline">Download</span>
+                            <span className="sm:hidden">DL</span>
                           </GlassButton>
                           <GlassButton
                             size="sm"
+                            className="px-2 sm:px-3"
                             onClick={() => startEditing(table)}
                           >
-                            <Edit3 className="h-4 w-4" />
+                            <Edit3 className="h-3 w-3 sm:h-4 sm:w-4" />
                           </GlassButton>
                           <button
                             onClick={() => setDeleteConfirm({ tableId: table._id, tableName: table.tableName })}
-                            className="inline-flex items-center justify-center h-9 px-3 rounded-md text-sm font-medium transition-colors hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 text-muted-foreground"
+                            className="inline-flex items-center justify-center h-8 sm:h-9 px-2 sm:px-3 rounded-md text-sm font-medium transition-colors hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-600 dark:hover:text-red-400 text-muted-foreground"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                           </button>
                         </div>
                       )}

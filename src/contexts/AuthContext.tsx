@@ -8,6 +8,8 @@ interface User {
   name: string;
   email: string;
   logo?: string;
+  isApproved: boolean;
+  isSuperAdmin: boolean;
 }
 
 interface AuthContextType {
@@ -69,6 +71,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             ...data.user,
             restaurantName: data.restaurant?.restaurantName || "",
             logo: data.restaurant?.logo || "",
+            isApproved: data.user.isApproved || false,
+            isSuperAdmin: data.user.isSuperAdmin || false,
           };
           setUser(userData);
         } else {
@@ -120,6 +124,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           ...data.user,
           restaurantName: data.restaurant?.restaurantName || "",
           logo: data.restaurant?.logo || "",
+          isApproved: data.user.isApproved || false,
+          isSuperAdmin: data.user.isSuperAdmin || false,
         };
 
         setToken(data.token);

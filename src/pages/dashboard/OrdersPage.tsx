@@ -10,8 +10,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-} 
-from "@/components/ui/dialog";
+}
+  from "@/components/ui/dialog";
 import {
   Clock,
   CheckCircle,
@@ -40,14 +40,14 @@ import {
   Printer,
   FileText,
 }
-from "lucide-react";
+  from "lucide-react";
 import { Lock } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 }
-from "@/components/ui/popover";
+  from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -55,7 +55,7 @@ import {
   SelectTrigger,
   SelectValue,
 }
-from "@/components/ui/select";
+  from "@/components/ui/select";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/components/ui/use-toast";
 import OrderChangeSummary from "@/components/src/OrderChangeSummary";
@@ -3468,12 +3468,12 @@ const OrdersPage = () => {
 
             <Button
               variant="outline"
-              className="w-full h-20 flex items-center justify-start gap-4 hover:bg-blue-50 hover:border-blue-500 transition-all"
+              className="w-full h-20 flex items-center justify-start gap-4 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 dark:hover:border-blue-400 transition-all"
               onClick={() => handlePaymentMethodSelect("upi")}
               disabled={isProcessingPayment}
             >
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <UpiIcon className="h-6 w-6 text-blue-600" />
+              <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded-lg">
+                <UpiIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="text-left">
                 <p className="font-semibold text-base">UPI Payment</p>
@@ -3485,12 +3485,12 @@ const OrdersPage = () => {
 
             <Button
               variant="outline"
-              className="w-full h-20 flex items-center justify-start gap-4 hover:bg-purple-50 hover:border-purple-500 transition-all"
+              className="w-full h-20 flex items-center justify-start gap-4 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-500 dark:hover:border-purple-400 transition-all"
               onClick={() => handlePaymentMethodSelect("card")}
               disabled={isProcessingPayment}
             >
-              <div className="bg-purple-100 p-3 rounded-lg">
-                <CreditCard className="h-6 w-6 text-purple-600" />
+              <div className="bg-purple-100 dark:bg-purple-900/30 p-3 rounded-lg">
+                <CreditCard className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="text-left">
                 <p className="font-semibold text-base">Card Payment</p>
@@ -3502,12 +3502,12 @@ const OrdersPage = () => {
 
             <Button
               variant="outline"
-              className="w-full h-20 flex items-center justify-start gap-4 hover:bg-green-50 hover:border-green-500 transition-all"
+              className="w-full h-20 flex items-center justify-start gap-4 hover:bg-green-50 dark:hover:bg-green-900/20 hover:border-green-500 dark:hover:border-green-400 transition-all"
               onClick={() => handlePaymentMethodSelect("cash")}
               disabled={isProcessingPayment}
             >
-              <div className="bg-green-100 p-3 rounded-lg">
-                <Banknote className="h-6 w-6 text-green-600" />
+              <div className="bg-green-100 dark:bg-green-900/30 p-3 rounded-lg">
+                <Banknote className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               <div className="text-left">
                 <p className="font-semibold text-base">Cash Payment</p>

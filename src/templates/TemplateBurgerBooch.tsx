@@ -1396,9 +1396,23 @@ const TemplateBurgerBooch = (props: TemplateBurgerBoochProps) => {
                             <div className="flex justify-between">
                               <h3 className="font-bold text-sm text-gray-900">{item.name}</h3>
                               <span className="font-bold text-sm">
-                                {formatPrice(item.price * item.quantity)}
+                                {formatPrice(getItemTotal(item))}
                               </span>
                             </div>
+                            {item.addons.length > 0 && (
+                              <div className="space-y-0.5 mt-1">
+                                {item.addons.map((addon, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="text-xs text-gray-500"
+                                  >
+                                    + {addon.name}{" "}
+                                    {addon.price > 0 &&
+                                      `(+${formatPrice(addon.price)})`}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                             <div className="flex items-center gap-3 mt-3">
                               <div className="flex items-center border border-gray-200 rounded-lg h-8">
                                 <button

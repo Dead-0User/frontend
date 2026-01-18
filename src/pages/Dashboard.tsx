@@ -15,6 +15,7 @@ import AnalyticsPage from "./dashboard/AnalyticsPage";
 import TemplatesPage from "./dashboard/TemplatesPage";
 import SettingsPage from "./dashboard/SettingsPage";
 import { API_BASE_URL } from "@/config";
+import { UpgradePlanOverlay } from "@/components/UpgradePlanOverlay";
 import { ThemeProvider } from "@/components/theme-provider";
 
 const Dashboard = () => {
@@ -124,6 +125,11 @@ const Dashboard = () => {
         </div>
       </div>
     );
+  }
+
+  // Check if user is approved (skip for super admins)
+  if (!user.isSuperAdmin && !user.isApproved) {
+    return <UpgradePlanOverlay />;
   }
 
   return (

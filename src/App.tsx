@@ -38,6 +38,9 @@ import ChefPage from "./pages/staff/ChefPage";
 import ManagerDashboard from "./pages/staff/ManagerDashboard";
 import CashierPage from "./pages/staff/CashierPage";
 
+// Super Admin
+import SuperAdminPage from "./pages/SuperAdminPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -63,6 +66,11 @@ const App = () => (
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/verify-otp" element={<VerifyOTP />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+
+                {/* ===== SUPER ADMIN ROUTE ===== */}
+                <Route element={<PrivateRoute />}>
+                  <Route path="/super-admin" element={<SuperAdminPage />} />
+                </Route>
 
                 {/* ===== OWNER PROTECTED ROUTES ===== */}
                 <Route element={<PrivateRoute />}>
